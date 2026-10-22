@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, ClipboardList, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react'
+import { CheckCircle2, ClipboardList, ImageOff, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { usePedidos, useProductos } from '../lib/hooks'
@@ -151,6 +151,15 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
                     {enCarrito}
                   </span>
                 )}
+                <span className="mb-2 h-12 w-12 overflow-hidden rounded-lg bg-page">
+                  {p.imagen_url ? (
+                    <img src={p.imagen_url} alt="" className={`h-full w-full object-cover ${agotado ? 'grayscale' : ''}`} loading="lazy" />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-muted/50">
+                      <ImageOff size={18} strokeWidth={1.5} />
+                    </span>
+                  )}
+                </span>
                 <span className="line-clamp-2 text-[15px] font-semibold leading-snug">{p.nombre}</span>
                 <span className="mt-auto pt-2 text-lg font-bold tabular-nums">{precio(p.precio)}</span>
                 <span className={`text-xs font-medium ${agotado ? 'text-muted' : p.stock <= 3 ? 'text-warn' : 'text-ok'}`}>
