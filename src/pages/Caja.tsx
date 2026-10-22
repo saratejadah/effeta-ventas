@@ -1,23 +1,26 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, ClipboardList, PackageCheck, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react'
+import { CheckCircle2, ClipboardList, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { usePedidos, useProductos } from '../lib/hooks'
 import { ajustarCarrito, fijarCantidad, lineasCarrito } from '../lib/carrito'
 import { mensajeError, numeroPedido, precio } from '../lib/format'
-import type { Carrito, Estado, Pedido } from '../lib/types'
+import { textoMetodo } from '../lib/pago'
+import type { Carrito, MetodoPago } from '../lib/types'
 import { PedidoCard } from '../components/PedidoCard'
+import { AccionesPago } from '../components/AccionesPago'
 import {
   Aviso,
   BotonPrincipal,
-  BotonSecundario,
   BottomNav,
   Campo,
   Card,
   Cargando,
   Contenido,
+  DatosTransferencia,
   Header,
   SectionLabel,
+  SelectorMetodoPago,
   Stepper,
   TituloPagina,
   type Tab,
@@ -49,9 +52,11 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
   const { productos, cargando, error: errorCarga, recargar } = useProductos()
   const [carrito, setCarrito] = useState<Carrito>({})
   const [cliente, setCliente] = useState('')
+  const [metodo, setMetodo] = useState<MetodoPago | null>(null)
+  const [pagado, setPagado] = useState<boolean | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [ultima, setUltima] = useState<{ numero: number; total: number } | null>(null)
+  const [ultima, setUltima] = useState<{ numero: number; total: number; pagado: boolean; metodo: MetodoPago | null } | null>(null)
 
   useEffect(() => {
     setCarrito((c) => ajustarCarrito(c, productos))
@@ -61,13 +66,20 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
   const total = lineas.reduce((s, l) => s + l.subtotal, 0)
   const unidades = lineas.reduce((s, l) => s + l.cantidad, 0)
 
+  // Qué falta para poder registrar (no asumimos que ya pagó)
+  const falta =
+    unidades === 0 ? 'Agrega productos' : pagado === null ? 'Indica si ya pagó' : pagado && !metodo ? 'Elige con qué pagó' : null
+
   async function registrar() {
+    if (falta) return setError(falta + '.')
     setEnviando(true)
     setError(null)
     const { data, error } = await supabase.rpc('crear_pedido', {
       p_nombre: cliente.trim() || 'Venta en caja',
       p_telefono: null,
       p_items: lineas.map((l) => ({ producto_id: l.producto.id, cantidad: l.cantidad })),
+      p_metodo_pago: metodo,
+      p_pagado: pagado,
     })
     setEnviando(false)
     if (error) {
@@ -77,9 +89,11 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
       return
     }
     const fila = Array.isArray(data) ? data[0] : data
-    setUltima({ numero: fila.out_numero, total: Number(fila.out_total) })
+    setUltima({ numero: fila.out_numero, total: Number(fila.out_total), pagado: !!pagado, metodo })
     setCarrito({})
     setCliente('')
+    setMetodo(null)
+    setPagado(null)
   }
 
   const primerNombre = nombreCajero?.split(' ')[0]
@@ -94,10 +108,13 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
       </div>
 
       {ultima && (
-        <div className="flex items-center gap-3 rounded-2xl bg-ok-bg px-4 py-3 text-ok">
+        <div className={`flex items-center gap-3 rounded-2xl px-4 py-3 ${ultima.pagado ? 'bg-ok-bg text-ok' : 'bg-warn-bg text-warn'}`}>
           <CheckCircle2 size={22} className="shrink-0" />
           <p className="text-sm font-semibold">
             Venta {numeroPedido(ultima.numero)} registrada · {precio(ultima.total)}
+            <span className="block font-medium">
+              {ultima.pagado ? `Pagada con ${textoMetodo(ultima.metodo)}` : 'Queda pendiente de pago (en la pestaña Pedidos)'}
+            </span>
           </p>
           <button onClick={() => setUltima(null)} className="ml-auto text-xs font-semibold underline">
             Ok
@@ -175,6 +192,40 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
           value={cliente}
           onChange={(e) => setCliente(e.target.value)}
         />
+      </Card>
+
+      <Card className="space-y-4">
+        <div className="space-y-2">
+          <SectionLabel>¿Ya pagó?</SectionLabel>
+          <div className="grid grid-cols-2 gap-2">
+            {(
+              [
+                [true, 'Sí, ya pagó'],
+                [false, 'No, paga después'],
+              ] as const
+            ).map(([valor, texto]) => (
+              <button
+                key={texto}
+                type="button"
+                onClick={() => setPagado(valor)}
+                className={`rounded-lg border px-3 py-3 text-sm font-semibold transition ${
+                  pagado === valor
+                    ? valor
+                      ? 'border-ok bg-ok-bg text-ok ring-1 ring-ok'
+                      : 'border-warn bg-warn-bg text-warn ring-1 ring-warn'
+                    : 'border-line bg-white text-ink'
+                }`}
+              >
+                {texto}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <SectionLabel>{pagado === false ? 'Método de pago (opcional)' : 'Método de pago'}</SectionLabel>
+          <SelectorMetodoPago valor={metodo} onChange={setMetodo} />
+          {metodo === 'transferencia' && <DatosTransferencia />}
+        </div>
         {error && <Aviso tipo="error">{error}</Aviso>}
       </Card>
 
@@ -185,7 +236,7 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
             <p className="text-xl font-bold tabular-nums text-ink">{precio(total)}</p>
           </div>
           <BotonPrincipal onClick={registrar} disabled={enviando || unidades === 0} icon={Wallet}>
-            {enviando ? 'Registrando…' : 'Registrar venta'}
+            {enviando ? 'Registrando…' : unidades > 0 && falta ? falta : 'Registrar venta'}
           </BotonPrincipal>
         </div>
       </div>
@@ -193,42 +244,29 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
   )
 }
 
-/* ================= Pedidos online ================= */
+/* ================= Pedidos ================= */
 
-type Filtro = 'pendiente' | 'pagado'
+type Filtro = 'por-cobrar' | 'por-entregar'
 
 export function PedidosOnline() {
   const { pedidos, cargando, error, recargar } = usePedidos()
-  const [filtro, setFiltro] = useState<Filtro>('pendiente')
+  const [filtro, setFiltro] = useState<Filtro>('por-cobrar')
   const [busqueda, setBusqueda] = useState('')
-  const [ocupado, setOcupado] = useState<string | null>(null)
-  const [errorAccion, setErrorAccion] = useState<string | null>(null)
 
-  const online = pedidos.filter((p) => p.canal === 'online')
-  const conteo = {
-    pendiente: online.filter((p) => p.estado === 'pendiente').length,
-    pagado: online.filter((p) => p.estado === 'pagado').length,
-  }
+  // Por cobrar: todo lo pendiente (online y en caja). Por entregar: online ya pagados.
+  const porCobrar = pedidos.filter((p) => p.estado === 'pendiente')
+  const porEntregar = pedidos.filter((p) => p.estado === 'pagado' && p.canal === 'online')
+  const conteo = { 'por-cobrar': porCobrar.length, 'por-entregar': porEntregar.length }
 
   const q = busqueda.trim().toLowerCase().replace(/^#/, '')
-  const visibles = online
-    .filter((p) => p.estado === filtro)
+  const visibles = (filtro === 'por-cobrar' ? porCobrar : porEntregar)
     .filter((p) => !q || String(p.numero) === String(Number(q)) || p.nombre_cliente.toLowerCase().includes(q))
     .sort((a, b) => a.numero - b.numero)
-
-  async function cambiarEstado(p: Pedido, estado: Estado) {
-    setOcupado(p.id)
-    setErrorAccion(null)
-    const { error } = await supabase.from('pedidos').update({ estado }).eq('id', p.id)
-    setOcupado(null)
-    if (error) setErrorAccion(mensajeError(error))
-    else recargar()
-  }
 
   return (
     <Contenido className="space-y-4 pb-28 pt-5">
       <div>
-        <TituloPagina>Pedidos online</TituloPagina>
+        <TituloPagina>Pedidos</TituloPagina>
         <p className="mt-1 text-sm text-muted">Se actualizan solos cuando llega uno nuevo.</p>
       </div>
 
@@ -246,8 +284,8 @@ export function PedidosOnline() {
       <div className="grid grid-cols-2 gap-2 rounded-xl bg-white p-1 ring-1 ring-line">
         {(
           [
-            ['pendiente', 'Por cobrar'],
-            ['pagado', 'Por entregar'],
+            ['por-cobrar', 'Por cobrar'],
+            ['por-entregar', 'Por entregar'],
           ] as const
         ).map(([id, texto]) => (
           <button
@@ -260,8 +298,6 @@ export function PedidosOnline() {
         ))}
       </div>
 
-      {errorAccion && <Aviso tipo="error">{errorAccion}</Aviso>}
-
       {cargando ? (
         <Cargando />
       ) : error ? (
@@ -270,33 +306,11 @@ export function PedidosOnline() {
         <Card className="text-center">
           <p className="text-[15px] font-semibold">{q ? 'No encontramos ese pedido' : 'Todo al día'}</p>
           <p className="mt-1 text-sm text-muted">
-            {q ? 'Revisa el número o el nombre.' : filtro === 'pendiente' ? 'No hay pedidos por cobrar.' : 'No hay pedidos por entregar.'}
+            {q ? 'Revisa el número o el nombre.' : filtro === 'por-cobrar' ? 'No hay pedidos por cobrar.' : 'No hay pedidos por entregar.'}
           </p>
         </Card>
       ) : (
-        visibles.map((p) => (
-          <PedidoCard
-            key={p.id}
-            pedido={p}
-            acciones={
-              <>
-                {p.estado === 'pendiente' && (
-                  <BotonPrincipal className="py-2.5 text-sm" icon={Wallet} disabled={ocupado === p.id} onClick={() => cambiarEstado(p, 'pagado')}>
-                    Marcar pagado
-                  </BotonPrincipal>
-                )}
-                <BotonSecundario
-                  className={p.estado === 'pendiente' ? 'shrink-0' : 'w-full'}
-                  icon={PackageCheck}
-                  disabled={ocupado === p.id}
-                  onClick={() => cambiarEstado(p, 'entregado')}
-                >
-                  Entregado
-                </BotonSecundario>
-              </>
-            }
-          />
-        ))
+        visibles.map((p) => <PedidoCard key={p.id} pedido={p} acciones={<AccionesPago pedido={p} onHecho={recargar} />} />)
       )}
     </Contenido>
   )

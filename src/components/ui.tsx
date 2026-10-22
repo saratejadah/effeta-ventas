@@ -1,6 +1,7 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react'
-import { LogOut, Minus, Plus, type LucideIcon } from 'lucide-react'
-import type { Estado } from '../lib/types'
+import { useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react'
+import { Check, Copy, LogOut, Minus, Plus, type LucideIcon } from 'lucide-react'
+import type { Estado, MetodoPago } from '../lib/types'
+import { METODOS_PAGO, NUMERO_TRANSFERENCIA } from '../lib/pago'
 
 function cx(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(' ')
@@ -295,5 +296,70 @@ export function BottomNav<T extends string>({
         })}
       </div>
     </nav>
+  )
+}
+
+/* ---------- Método de pago ---------- */
+
+export function SelectorMetodoPago({
+  valor,
+  onChange,
+}: {
+  valor: MetodoPago | null
+  onChange: (m: MetodoPago) => void
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {METODOS_PAGO.map((m) => {
+        const on = valor === m.id
+        return (
+          <button
+            key={m.id}
+            type="button"
+            onClick={() => onChange(m.id)}
+            className={cx(
+              'flex items-center gap-2 rounded-lg border px-3 py-3 text-sm font-semibold transition',
+              on ? 'border-primary bg-[#E8EAFB] text-primary ring-1 ring-primary' : 'border-line bg-white text-ink',
+            )}
+          >
+            <m.icon size={18} strokeWidth={1.8} className={on ? 'text-primary' : 'text-muted'} />
+            {m.texto}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/** Número para transferir, con botón para copiarlo */
+export function DatosTransferencia() {
+  const [copiado, setCopiado] = useState(false)
+  const n = NUMERO_TRANSFERENCIA
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(n)
+      setCopiado(true)
+      setTimeout(() => setCopiado(false), 2000)
+    } catch {
+      /* el navegador no dejó copiar; el número sigue visible */
+    }
+  }
+  return (
+    <div className="rounded-xl bg-[#E8EAFB] px-4 py-3">
+      <p className="text-xs font-medium text-primary/80">Transfiere por Nequi, Daviplata o llave al número</p>
+      <div className="mt-1 flex items-center justify-between gap-3">
+        <p className="text-xl font-bold tracking-wide text-primary tabular-nums">
+          {n.slice(0, 3)} {n.slice(3, 6)} {n.slice(6)}
+        </p>
+        <button
+          type="button"
+          onClick={copiar}
+          className="flex shrink-0 items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-primary active:opacity-80"
+        >
+          {copiado ? <Check size={14} /> : <Copy size={14} />}
+          {copiado ? 'Copiado' : 'Copiar'}
+        </button>
+      </div>
+    </div>
   )
 }

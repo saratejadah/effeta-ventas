@@ -4,7 +4,8 @@ import { supabase } from '../lib/supabase'
 import { useProductos } from '../lib/hooks'
 import { ajustarCarrito, fijarCantidad, lineasCarrito } from '../lib/carrito'
 import { mensajeError, numeroPedido, precio } from '../lib/format'
-import type { Carrito, Producto } from '../lib/types'
+import { textoMetodo } from '../lib/pago'
+import type { Carrito, MetodoPago, Producto } from '../lib/types'
 import {
   Aviso,
   BotonPrincipal,
@@ -13,9 +14,11 @@ import {
   Card,
   Cargando,
   Contenido,
+  DatosTransferencia,
   Header,
   Hero,
   SectionLabel,
+  SelectorMetodoPago,
   Stepper,
   StockPill,
 } from '../components/ui'
@@ -26,6 +29,7 @@ interface Confirmacion {
   numero: number
   nombre: string
   total: number
+  metodo: MetodoPago
   lineas: { nombre: string; cantidad: number; subtotal: number }[]
 }
 
@@ -35,6 +39,7 @@ export default function PedidoPage() {
   const [paso, setPaso] = useState<Paso>('elegir')
   const [nombre, setNombre] = useState('')
   const [telefono, setTelefono] = useState('')
+  const [metodo, setMetodo] = useState<MetodoPago | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmacion, setConfirmacion] = useState<Confirmacion | null>(null)
@@ -57,12 +62,17 @@ export default function PedidoPage() {
       setError('Cuéntanos tu nombre para poder entregarte el pedido.')
       return
     }
+    if (!metodo) {
+      setError('Elige cómo vas a pagar.')
+      return
+    }
     setEnviando(true)
     setError(null)
     const { data, error } = await supabase.rpc('crear_pedido', {
       p_nombre: nombre.trim(),
       p_telefono: telefono.trim() || null,
       p_items: lineas.map((l) => ({ producto_id: l.producto.id, cantidad: l.cantidad })),
+      p_metodo_pago: metodo,
     })
     setEnviando(false)
 
@@ -83,6 +93,7 @@ export default function PedidoPage() {
       numero: fila.out_numero,
       nombre: nombre.trim(),
       total: Number(fila.out_total),
+      metodo,
       lineas: lineas.map((l) => ({ nombre: l.producto.nombre, cantidad: l.cantidad, subtotal: l.subtotal })),
     })
     setCarrito({})
@@ -94,6 +105,7 @@ export default function PedidoPage() {
     setConfirmacion(null)
     setNombre('')
     setTelefono('')
+    setMetodo(null)
     setPaso('elegir')
     window.scrollTo({ top: 0 })
   }
@@ -115,8 +127,15 @@ export default function PedidoPage() {
               {numeroPedido(confirmacion.numero)}
             </p>
             <p className="mt-4 rounded-xl bg-warn-bg px-4 py-3 text-sm font-medium text-warn">
-              Muestra este número al recoger y pagar.
+              {confirmacion.metodo === 'transferencia'
+                ? 'Haz la transferencia y muestra este número con el comprobante al recoger.'
+                : 'Muestra este número al recoger y pagar.'}
             </p>
+            {confirmacion.metodo === 'transferencia' && (
+              <div className="mt-3">
+                <DatosTransferencia />
+              </div>
+            )}
           </Card>
 
           <Card>
@@ -135,6 +154,9 @@ export default function PedidoPage() {
               <span>Total</span>
               <span className="text-accent tabular-nums">{precio(confirmacion.total)}</span>
             </div>
+            <p className="mt-3 text-sm text-muted">
+              Vas a pagar con <span className="font-semibold text-ink">{textoMetodo(confirmacion.metodo)}</span>
+            </p>
           </Card>
 
           <BotonSecundario onClick={nuevoPedido} className="w-full">
@@ -194,6 +216,16 @@ export default function PedidoPage() {
               inputMode="tel"
               autoComplete="tel"
             />
+          </Card>
+
+          <Card className="space-y-3">
+            <SectionLabel>¿Cómo vas a pagar?</SectionLabel>
+            <SelectorMetodoPago valor={metodo} onChange={setMetodo} />
+            {metodo === 'transferencia' ? (
+              <DatosTransferencia />
+            ) : (
+              <p className="text-xs text-muted">Pagas al recoger tu pedido en la caja.</p>
+            )}
           </Card>
 
           {error && <Aviso tipo="error">{error}</Aviso>}

@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { Download, Globe, Store } from 'lucide-react'
+import { METODOS_PAGO, textoMetodo } from '../../lib/pago'
 import { usePedidos, useProductos } from '../../lib/hooks'
 import { descargarCSV } from '../../lib/csv'
 import { numeroPedido, precio } from '../../lib/format'
@@ -25,6 +26,13 @@ export default function Resumen({ nombre }: { nombre?: string }) {
       porCajero.set(clave, fila)
     }
 
+    // Lo cobrado por método de pago
+    const porMetodo = METODOS_PAGO.map((m) => {
+      const lista = cobrados.filter((p) => p.metodo_pago === m.id)
+      return { ...m, pedidos: lista.length, total: lista.reduce((s, p) => s + p.total, 0) }
+    })
+    const sinMetodo = cobrados.filter((p) => !p.metodo_pago)
+
     // Unidades vendidas por producto (pedidos no cancelados)
     const vendidas = new Map<string, number>()
     for (const p of validos) for (const i of p.pedido_items ?? []) vendidas.set(i.producto_id, (vendidas.get(i.producto_id) ?? 0) + i.cantidad)
@@ -35,6 +43,8 @@ export default function Resumen({ nombre }: { nombre?: string }) {
       numPedidos: validos.length,
       numPorCobrar: porCobrar.length,
       agotados: productos.filter((p) => p.activo && p.stock <= 0).length,
+      porMetodo,
+      sinMetodo: { pedidos: sinMetodo.length, total: sinMetodo.reduce((s, p) => s + p.total, 0) },
       porCajero: [...porCajero.values()].sort((a, b) => b.total - a.total),
       porProducto: productos
         .map((p) => ({ producto: p, vendidas: vendidas.get(p.id) ?? 0 }))
@@ -44,7 +54,7 @@ export default function Resumen({ nombre }: { nombre?: string }) {
 
   function exportarPedidos() {
     const filas: (string | number | null)[][] = [
-      ['Número', 'Fecha', 'Hora', 'Cliente', 'Teléfono', 'Canal', 'Cajero', 'Estado', 'Total', 'Detalle'],
+      ['Número', 'Fecha', 'Hora', 'Cliente', 'Teléfono', 'Canal', 'Cajero', 'Estado', 'Método de pago', 'Total', 'Detalle'],
     ]
     for (const p of [...pedidos].sort((a, b) => a.numero - b.numero)) {
       const f = new Date(p.created_at)
@@ -57,6 +67,7 @@ export default function Resumen({ nombre }: { nombre?: string }) {
         p.canal,
         p.perfiles?.nombre ?? '',
         p.estado,
+        p.metodo_pago ? textoMetodo(p.metodo_pago) : '',
         p.total,
         (p.pedido_items ?? []).map((i) => `${i.cantidad}x ${i.productos?.nombre ?? ''}`).join(', '),
       ])
@@ -98,10 +109,36 @@ export default function Resumen({ nombre }: { nombre?: string }) {
 
             {datos.numPorCobrar > 0 && (
               <Aviso tipo="error">
-                Hay {datos.numPorCobrar} {datos.numPorCobrar === 1 ? 'pedido online' : 'pedidos online'} por cobrar (
+                Hay {datos.numPorCobrar} {datos.numPorCobrar === 1 ? 'pedido' : 'pedidos'} por cobrar (
                 {precio(datos.totalPorCobrar)}).
               </Aviso>
             )}
+
+            <section>
+              <SectionLabel className="mb-2">Cobrado por método de pago</SectionLabel>
+              <Card sinPadding>
+                <ul className="divide-y divide-line">
+                  {datos.porMetodo.map((m) => (
+                    <li key={m.id} className="flex items-center gap-3 px-4 py-3">
+                      <IconBox icon={m.icon} color={m.id === 'efectivo' ? 'verde' : m.id === 'transferencia' ? 'indigo' : 'morado'} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[15px] font-semibold">{m.texto}</p>
+                        <p className="text-xs text-muted">
+                          {m.pedidos} {m.pedidos === 1 ? 'pago' : 'pagos'}
+                        </p>
+                      </div>
+                      <p className="font-bold tabular-nums">{precio(m.total)}</p>
+                    </li>
+                  ))}
+                  {datos.sinMetodo.pedidos > 0 && (
+                    <li className="flex items-center justify-between px-4 py-3 text-sm text-muted">
+                      <span>Sin método registrado ({datos.sinMetodo.pedidos})</span>
+                      <span className="font-semibold tabular-nums">{precio(datos.sinMetodo.total)}</span>
+                    </li>
+                  )}
+                </ul>
+              </Card>
+            </section>
 
             <section>
               <SectionLabel className="mb-2">Ventas por cajero</SectionLabel>
