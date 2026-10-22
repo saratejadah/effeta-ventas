@@ -5,9 +5,11 @@
 -- =========================================================
 
 -- 1. Nueva columna: con qué se pagó (o con qué piensa pagar el cliente)
+alter table public.pedidos add column if not exists metodo_pago text;
+alter table public.pedidos drop constraint if exists pedidos_metodo_pago_check;
+update public.pedidos set metodo_pago = 'transferencia' where metodo_pago in ('nequi', 'daviplata');
 alter table public.pedidos
-  add column if not exists metodo_pago text
-  check (metodo_pago in ('efectivo', 'nequi', 'daviplata', 'transferencia'));
+  add constraint pedidos_metodo_pago_check check (metodo_pago in ('efectivo', 'transferencia'));
 
 -- 2. crear_pedido ahora recibe el método de pago y si ya se pagó.
 --    Comprador sin sesión -> siempre queda 'pendiente' (el pago lo confirma el equipo)
@@ -42,7 +44,7 @@ begin
     raise exception 'El pedido no tiene productos';
   end if;
   if p_metodo_pago is not null
-     and p_metodo_pago not in ('efectivo', 'nequi', 'daviplata', 'transferencia') then
+     and p_metodo_pago not in ('efectivo', 'transferencia') then
     raise exception 'Método de pago inválido';
   end if;
 

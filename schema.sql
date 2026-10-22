@@ -33,7 +33,7 @@ create table public.pedidos (
   estado text not null default 'pendiente'
     check (estado in ('pendiente', 'pagado', 'entregado', 'cancelado')),
   cajero_id uuid references public.perfiles(id),
-  metodo_pago text check (metodo_pago in ('efectivo', 'nequi', 'daviplata', 'transferencia')),
+  metodo_pago text check (metodo_pago in ('efectivo', 'transferencia')),
   total numeric(12,2) not null default 0,
   created_at timestamptz not null default now()
 );
@@ -87,7 +87,7 @@ create trigger on_auth_user_created
 
 -- ---------- CREAR PEDIDO (atómico: descuenta stock o falla todo) ----------
 -- p_items: [{"producto_id": "uuid", "cantidad": 2}, ...]
--- p_metodo_pago: 'efectivo' | 'nequi' | 'daviplata' | 'transferencia'
+-- p_metodo_pago: 'efectivo' | 'transferencia'
 -- Si lo llama un comprador sin sesión -> canal 'online', estado 'pendiente'
 -- Si lo llama un cajero logueado      -> canal 'presencial', estado 'pagado' solo si p_pagado
 
@@ -118,7 +118,7 @@ begin
     raise exception 'El pedido no tiene productos';
   end if;
   if p_metodo_pago is not null
-     and p_metodo_pago not in ('efectivo', 'nequi', 'daviplata', 'transferencia') then
+     and p_metodo_pago not in ('efectivo', 'transferencia') then
     raise exception 'Método de pago inválido';
   end if;
 

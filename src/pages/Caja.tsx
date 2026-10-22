@@ -17,6 +17,7 @@ import {
   Card,
   Cargando,
   Contenido,
+  DatosTransferencia,
   Header,
   SectionLabel,
   SelectorMetodoPago,
@@ -223,6 +224,7 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
         <div className="space-y-2">
           <SectionLabel>{pagado === false ? 'Método de pago (opcional)' : 'Método de pago'}</SectionLabel>
           <SelectorMetodoPago valor={metodo} onChange={setMetodo} />
+          {metodo === 'transferencia' && <DatosTransferencia />}
         </div>
         {error && <Aviso tipo="error">{error}</Aviso>}
       </Card>

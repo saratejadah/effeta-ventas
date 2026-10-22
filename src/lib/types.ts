@@ -1,7 +1,7 @@
 export type Rol = 'admin' | 'cajero'
 export type Estado = 'pendiente' | 'pagado' | 'entregado' | 'cancelado'
 export type Canal = 'online' | 'presencial'
-export type MetodoPago = 'efectivo' | 'nequi' | 'daviplata' | 'transferencia'
+export type MetodoPago = 'efectivo' | 'transferencia'
 
 export interface Perfil {
   id: string

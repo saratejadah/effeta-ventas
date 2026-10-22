@@ -14,6 +14,7 @@ import {
   Card,
   Cargando,
   Contenido,
+  DatosTransferencia,
   Header,
   Hero,
   SectionLabel,
@@ -126,8 +127,15 @@ export default function PedidoPage() {
               {numeroPedido(confirmacion.numero)}
             </p>
             <p className="mt-4 rounded-xl bg-warn-bg px-4 py-3 text-sm font-medium text-warn">
-              Muestra este número al recoger y pagar.
+              {confirmacion.metodo === 'transferencia'
+                ? 'Haz la transferencia y muestra este número con el comprobante al recoger.'
+                : 'Muestra este número al recoger y pagar.'}
             </p>
+            {confirmacion.metodo === 'transferencia' && (
+              <div className="mt-3">
+                <DatosTransferencia />
+              </div>
+            )}
           </Card>
 
           <Card>
@@ -213,7 +221,11 @@ export default function PedidoPage() {
           <Card className="space-y-3">
             <SectionLabel>¿Cómo vas a pagar?</SectionLabel>
             <SelectorMetodoPago valor={metodo} onChange={setMetodo} />
-            <p className="text-xs text-muted">Pagas al recoger tu pedido en la caja.</p>
+            {metodo === 'transferencia' ? (
+              <DatosTransferencia />
+            ) : (
+              <p className="text-xs text-muted">Pagas al recoger tu pedido en la caja.</p>
+            )}
           </Card>
 
           {error && <Aviso tipo="error">{error}</Aviso>}
