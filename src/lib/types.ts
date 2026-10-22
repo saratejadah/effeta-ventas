@@ -1,6 +1,7 @@
 export type Rol = 'admin' | 'cajero'
 export type Estado = 'pendiente' | 'pagado' | 'entregado' | 'cancelado'
 export type Canal = 'online' | 'presencial'
+export type MetodoPago = 'efectivo' | 'nequi' | 'daviplata' | 'transferencia'
 
 export interface Perfil {
   id: string
@@ -38,6 +39,7 @@ export interface Pedido {
   canal: Canal
   estado: Estado
   cajero_id: string | null
+  metodo_pago: MetodoPago | null
   total: number
   created_at: string
   perfiles?: { nombre: string } | null

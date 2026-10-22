@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react'
 import { LogOut, Minus, Plus, type LucideIcon } from 'lucide-react'
-import type { Estado } from '../lib/types'
+import type { Estado, MetodoPago } from '../lib/types'
+import { METODOS_PAGO } from '../lib/pago'
 
 function cx(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(' ')
@@ -295,5 +296,37 @@ export function BottomNav<T extends string>({
         })}
       </div>
     </nav>
+  )
+}
+
+/* ---------- Método de pago ---------- */
+
+export function SelectorMetodoPago({
+  valor,
+  onChange,
+}: {
+  valor: MetodoPago | null
+  onChange: (m: MetodoPago) => void
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {METODOS_PAGO.map((m) => {
+        const on = valor === m.id
+        return (
+          <button
+            key={m.id}
+            type="button"
+            onClick={() => onChange(m.id)}
+            className={cx(
+              'flex items-center gap-2 rounded-lg border px-3 py-3 text-sm font-semibold transition',
+              on ? 'border-primary bg-[#E8EAFB] text-primary ring-1 ring-primary' : 'border-line bg-white text-ink',
+            )}
+          >
+            <m.icon size={18} strokeWidth={1.8} className={on ? 'text-primary' : 'text-muted'} />
+            {m.texto}
+          </button>
+        )
+      })}
+    </div>
   )
 }

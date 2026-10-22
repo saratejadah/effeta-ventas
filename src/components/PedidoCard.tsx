@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Globe, Store } from 'lucide-react'
 import { hora, numeroPedido, precio } from '../lib/format'
+import { textoMetodo } from '../lib/pago'
 import type { Pedido } from '../lib/types'
 import { EstadoPill } from './ui'
 
@@ -39,7 +40,12 @@ export function PedidoCard({ pedido: p, acciones, mostrarCajero }: { pedido: Ped
       )}
 
       <div className="mt-3 flex items-center justify-between">
-        <span className="text-sm text-muted">Total</span>
+        <span className="text-sm text-muted">
+          Total ·{' '}
+          <span className="font-medium text-ink">
+            {p.estado === 'pendiente' && p.metodo_pago ? `Pagará con ${textoMetodo(p.metodo_pago)}` : textoMetodo(p.metodo_pago)}
+          </span>
+        </span>
         <span className="text-lg font-bold tabular-nums text-accent">{precio(p.total)}</span>
       </div>
 

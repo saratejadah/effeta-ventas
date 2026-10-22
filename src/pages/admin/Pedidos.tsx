@@ -5,6 +5,7 @@ import { usePedidos } from '../../lib/hooks'
 import { hora, mensajeError, numeroPedido, precio } from '../../lib/format'
 import type { Canal, Estado, Pedido } from '../../lib/types'
 import { PedidoCard } from '../../components/PedidoCard'
+import { AccionesPago } from '../../components/AccionesPago'
 import { Aviso, BotonSecundario, Card, Cargando, Contenido, EstadoPill, TituloPagina } from '../../components/ui'
 
 const estados: { id: Estado | 'todos'; texto: string }[] = [
@@ -123,14 +124,17 @@ export default function Pedidos() {
                         mostrarCajero
                         acciones={
                           p.estado !== 'cancelado' && (
-                            <BotonSecundario
-                              className="w-full text-warn"
-                              icon={XCircle}
-                              disabled={cancelando === p.id}
-                              onClick={() => cancelar(p)}
-                            >
-                              {cancelando === p.id ? 'Cancelando…' : 'Cancelar pedido'}
-                            </BotonSecundario>
+                            <div className="w-full space-y-2">
+                              <AccionesPago pedido={p} onHecho={recargar} />
+                              <BotonSecundario
+                                className="w-full text-warn"
+                                icon={XCircle}
+                                disabled={cancelando === p.id}
+                                onClick={() => cancelar(p)}
+                              >
+                                {cancelando === p.id ? 'Cancelando…' : 'Cancelar pedido'}
+                              </BotonSecundario>
+                            </div>
                           )
                         }
                       />
