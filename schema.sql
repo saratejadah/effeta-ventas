@@ -41,7 +41,8 @@ create table public.pedidos (
 create table public.pedido_items (
   id uuid primary key default gen_random_uuid(),
   pedido_id uuid not null references public.pedidos(id) on delete cascade,
-  producto_id uuid not null references public.productos(id),
+  producto_id uuid references public.productos(id) on delete set null,
+  nombre_producto text,
   cantidad integer not null check (cantidad > 0),
   precio_unitario numeric(12,2) not null
 );
@@ -158,8 +159,8 @@ begin
       raise exception 'No hay stock suficiente de uno de los productos';
     end if;
 
-    insert into pedido_items (pedido_id, producto_id, cantidad, precio_unitario)
-    values (v_pedido_id, v_prod.id, v_cant, v_prod.precio);
+    insert into pedido_items (pedido_id, producto_id, nombre_producto, cantidad, precio_unitario)
+    values (v_pedido_id, v_prod.id, v_prod.nombre, v_cant, v_prod.precio);
 
     v_total := v_total + v_prod.precio * v_cant;
   end loop;
@@ -195,6 +196,29 @@ end;
 $$;
 
 revoke execute on function public.cancelar_pedido(uuid) from anon;
+
+-- ---------- ELIMINAR PEDIDO (devuelve el stock si no estaba cancelado) ----------
+
+create or replace function public.eliminar_pedido(p_pedido_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not es_admin() then
+    raise exception 'Solo un admin puede eliminar pedidos';
+  end if;
+
+  if exists (select 1 from pedidos where id = p_pedido_id and estado <> 'cancelado') then
+    update productos p
+       set stock = p.stock + i.cantidad
+      from pedido_items i
+     where i.pedido_id = p_pedido_id and i.producto_id = p.id;
+  end if;
+
+  delete from pedidos where id = p_pedido_id;  -- sus líneas se borran solas
+end;
+$$;
+
+revoke execute on function public.eliminar_pedido(uuid) from anon, public;
+grant execute on function public.eliminar_pedido(uuid) to authenticated;
 
 -- ---------- SEGURIDAD (RLS) ----------
 

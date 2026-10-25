@@ -25,7 +25,8 @@ export interface Producto {
 export interface PedidoItem {
   id: string
   pedido_id: string
-  producto_id: string
+  producto_id: string | null
+  nombre_producto: string | null
   cantidad: number
   precio_unitario: number
   productos?: { nombre: string } | null
