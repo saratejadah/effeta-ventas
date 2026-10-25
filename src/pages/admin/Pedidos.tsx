@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, Globe, Store, XCircle } from 'lucide-react'
+import { ChevronDown, Globe, Store, Trash2, XCircle } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { usePedidos } from '../../lib/hooks'
 import { hora, mensajeError, numeroPedido, precio } from '../../lib/format'
@@ -53,6 +53,23 @@ export default function Pedidos() {
     setCancelando(null)
     if (error) setErrorAccion(mensajeError(error))
     else recargar()
+  }
+
+  async function eliminar(p: Pedido) {
+    const aviso =
+      p.estado === 'cancelado'
+        ? `¿Eliminar para siempre el pedido ${numeroPedido(p.numero)} de ${p.nombre_cliente}? Desaparece de los registros y no se puede deshacer.`
+        : `¿Eliminar para siempre el pedido ${numeroPedido(p.numero)} de ${p.nombre_cliente}? Las unidades vuelven al inventario, el pedido desaparece de los registros y no se puede deshacer.`
+    if (!window.confirm(aviso)) return
+    setCancelando(p.id)
+    setErrorAccion(null)
+    const { error } = await supabase.rpc('eliminar_pedido', { p_pedido_id: p.id })
+    setCancelando(null)
+    if (error) setErrorAccion(mensajeError(error))
+    else {
+      setAbierto(null)
+      recargar()
+    }
   }
 
   return (
@@ -123,19 +140,29 @@ export default function Pedidos() {
                         pedido={p}
                         mostrarCajero
                         acciones={
-                          p.estado !== 'cancelado' && (
-                            <div className="w-full space-y-2">
-                              <AccionesPago pedido={p} onHecho={recargar} />
-                              <BotonSecundario
-                                className="w-full text-warn"
-                                icon={XCircle}
-                                disabled={cancelando === p.id}
-                                onClick={() => cancelar(p)}
-                              >
-                                {cancelando === p.id ? 'Cancelando…' : 'Cancelar pedido'}
-                              </BotonSecundario>
-                            </div>
-                          )
+                          <div className="w-full space-y-2">
+                            {p.estado !== 'cancelado' && (
+                              <>
+                                <AccionesPago pedido={p} onHecho={recargar} />
+                                <BotonSecundario
+                                  className="w-full text-warn"
+                                  icon={XCircle}
+                                  disabled={cancelando === p.id}
+                                  onClick={() => cancelar(p)}
+                                >
+                                  Cancelar pedido
+                                </BotonSecundario>
+                              </>
+                            )}
+                            <BotonSecundario
+                              className="w-full text-danger"
+                              icon={Trash2}
+                              disabled={cancelando === p.id}
+                              onClick={() => eliminar(p)}
+                            >
+                              Eliminar pedido
+                            </BotonSecundario>
+                          </div>
                         }
                       />
                     </div>

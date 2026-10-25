@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Camera, ImageOff, PackagePlus, Pencil, Plus, X } from 'lucide-react'
+import { Camera, ImageOff, PackagePlus, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useProductos } from '../../lib/hooks'
 import { mensajeError, precio } from '../../lib/format'
@@ -186,6 +186,28 @@ function FormularioProducto({ producto, onCerrar }: { producto: Producto | null;
     setVista(URL.createObjectURL(f))
   }
 
+  async function eliminar() {
+    if (!producto) return
+    if (
+      !window.confirm(
+        `¿Eliminar "${producto.nombre}" para siempre? Deja de aparecer en la caja y en el link de pedidos. Las ventas que ya tuvo se conservan en los registros. No se puede deshacer.`,
+      )
+    )
+      return
+    setGuardando(true)
+    setError(null)
+    const { error } = await supabase.from('productos').delete().eq('id', producto.id)
+    if (error) {
+      setError(mensajeError(error))
+      setGuardando(false)
+      return
+    }
+    // Borrar también su foto (si falla no pasa nada, el producto ya se eliminó)
+    const ruta = producto.imagen_url?.split('/productos/')[1]
+    if (ruta) await supabase.storage.from('productos').remove([decodeURIComponent(ruta)])
+    onCerrar()
+  }
+
   async function guardar(e: FormEvent) {
     e.preventDefault()
     const precioNum = parseInt(valor.replace(/\D/g, ''), 10)
@@ -278,6 +300,11 @@ function FormularioProducto({ producto, onCerrar }: { producto: Producto | null;
         <BotonSecundario type="button" className="w-full" onClick={onCerrar}>
           Cancelar
         </BotonSecundario>
+        {producto && (
+          <BotonSecundario type="button" className="w-full text-danger" icon={Trash2} disabled={guardando} onClick={eliminar}>
+            Eliminar producto
+          </BotonSecundario>
+        )}
       </form>
     </Contenido>
   )

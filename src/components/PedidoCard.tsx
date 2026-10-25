@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Globe, Store } from 'lucide-react'
-import { hora, numeroPedido, precio } from '../lib/format'
+import { hora, nombreItem, numeroPedido, precio } from '../lib/format'
 import { textoMetodo } from '../lib/pago'
 import type { Pedido } from '../lib/types'
 import { EstadoPill } from './ui'
@@ -31,7 +31,7 @@ export function PedidoCard({ pedido: p, acciones, mostrarCajero }: { pedido: Ped
           {p.pedido_items.map((i) => (
             <li key={i.id} className="flex justify-between gap-3">
               <span className="min-w-0 truncate">
-                <span className="font-semibold">{i.cantidad}×</span> {i.productos?.nombre ?? 'Producto'}
+                <span className="font-semibold">{i.cantidad}×</span> {nombreItem(i)}
               </span>
               <span className="tabular-nums text-muted">{precio(i.precio_unitario * i.cantidad)}</span>
             </li>

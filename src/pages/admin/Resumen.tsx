@@ -3,7 +3,7 @@ import { Download, Globe, Store } from 'lucide-react'
 import { METODOS_PAGO, textoMetodo } from '../../lib/pago'
 import { usePedidos, useProductos } from '../../lib/hooks'
 import { descargarCSV } from '../../lib/csv'
-import { numeroPedido, precio } from '../../lib/format'
+import { nombreItem, numeroPedido, precio } from '../../lib/format'
 import { Aviso, BotonSecundario, Card, Cargando, Hero, IconBox, SectionLabel, StatCard } from '../../components/ui'
 
 export default function Resumen({ nombre }: { nombre?: string }) {
@@ -35,7 +35,7 @@ export default function Resumen({ nombre }: { nombre?: string }) {
 
     // Unidades vendidas por producto (pedidos no cancelados)
     const vendidas = new Map<string, number>()
-    for (const p of validos) for (const i of p.pedido_items ?? []) vendidas.set(i.producto_id, (vendidas.get(i.producto_id) ?? 0) + i.cantidad)
+    for (const p of validos) for (const i of p.pedido_items ?? []) if (i.producto_id) vendidas.set(i.producto_id, (vendidas.get(i.producto_id) ?? 0) + i.cantidad)
 
     return {
       totalVendido: cobrados.reduce((s, p) => s + p.total, 0),
@@ -69,7 +69,7 @@ export default function Resumen({ nombre }: { nombre?: string }) {
         p.estado,
         p.metodo_pago ? textoMetodo(p.metodo_pago) : '',
         p.total,
-        (p.pedido_items ?? []).map((i) => `${i.cantidad}x ${i.productos?.nombre ?? ''}`).join(', '),
+        (p.pedido_items ?? []).map((i) => `${i.cantidad}x ${nombreItem(i)}`).join(', '),
       ])
     }
     descargarCSV(`pedidos-${hoy()}.csv`, filas)

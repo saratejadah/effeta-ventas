@@ -173,7 +173,9 @@ export function BotonSecundario({ className, children, icon: Icon, ...props }: B
     <button
       {...props}
       className={cx(
-        'flex items-center justify-center gap-2 rounded-lg border border-line bg-white px-4 py-2.5 text-sm font-medium text-muted transition active:bg-page disabled:opacity-40',
+        'flex items-center justify-center gap-2 rounded-lg border border-line bg-white px-4 py-2.5 text-sm font-medium transition active:bg-page disabled:opacity-40',
+        // Gris por defecto, salvo que se pida otro color
+        !/(^|\s)text-(warn|danger|ok|primary|ink)/.test(className ?? '') && 'text-muted',
         className,
       )}
     >
