@@ -6,7 +6,7 @@ import { hora, mensajeError, numeroPedido, precio } from '../../lib/format'
 import type { Canal, Estado, Pedido } from '../../lib/types'
 import { PedidoCard } from '../../components/PedidoCard'
 import { AccionesPago } from '../../components/AccionesPago'
-import { Aviso, BotonSecundario, Card, Cargando, Contenido, EstadoPill, TituloPagina } from '../../components/ui'
+import { Aviso, BotonSecundario, Card, Cargando, Chip, Contenido, EstadoPill, TituloPagina } from '../../components/ui'
 
 const estados: { id: Estado | 'todos'; texto: string }[] = [
   { id: 'todos', texto: 'Todos' },
@@ -21,19 +21,6 @@ const canales: { id: Canal | 'todos'; texto: string }[] = [
   { id: 'online', texto: 'Online' },
   { id: 'presencial', texto: 'En caja' },
 ]
-
-function Chip({ activo, onClick, children }: { activo: boolean; onClick: () => void; children: string }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition ${
-        activo ? 'border-primary bg-primary text-white' : 'border-line bg-white text-muted'
-      }`}
-    >
-      {children}
-    </button>
-  )
-}
 
 export default function Pedidos() {
   const { pedidos, cargando, error, recargar } = usePedidos()

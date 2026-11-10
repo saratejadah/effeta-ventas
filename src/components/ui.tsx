@@ -239,6 +239,21 @@ export function Stepper({
   )
 }
 
+/* ---------- Filtros ---------- */
+
+export function Chip({ activo, onClick, children }: { activo: boolean; onClick: () => void; children: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition ${
+        activo ? 'border-primary bg-primary text-white' : 'border-line bg-white text-muted'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
 /* ---------- Avisos ---------- */
 
 export function Aviso({ tipo, children }: { tipo: 'error' | 'ok'; children: ReactNode }) {
