@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { LogIn } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
+import { correoParaEntrar } from '../lib/usuarios'
 import { Aviso, BotonPrincipal, Campo, Card, Contenido, Header, Hero } from '../components/ui'
 
 export default function LoginPage() {
@@ -32,12 +33,12 @@ export default function LoginPage() {
     e.preventDefault()
     setEnviando(true)
     setError(null)
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+    const { error } = await supabase.auth.signInWithPassword({ email: correoParaEntrar(email), password })
     setEnviando(false)
     if (error) {
       setError(
         error.message.toLowerCase().includes('invalid')
-          ? 'El correo o la contraseña no coinciden. Revísalos e intenta otra vez.'
+          ? 'El usuario o la contraseña no coinciden. Revísalos e intenta otra vez.'
           : error.message,
       )
     }
@@ -51,11 +52,13 @@ export default function LoginPage() {
         <Card>
           <form onSubmit={entrar} className="space-y-4">
             <Campo
-              label="Correo"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              placeholder="tucorreo@ejemplo.com"
+              label="Usuario o correo"
+              type="text"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              autoComplete="username"
+              placeholder="Ej. caja1 o tucorreo@ejemplo.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
