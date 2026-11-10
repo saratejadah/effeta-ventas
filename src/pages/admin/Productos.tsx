@@ -11,15 +11,35 @@ import {
   Campo,
   Card,
   Cargando,
+  Chip,
   Contenido,
   Pill,
   StockPill,
   TituloPagina,
 } from '../../components/ui'
 
+type Filtro = 'todos' | 'activos' | 'inactivos'
+const filtros: { id: Filtro; texto: string }[] = [
+  { id: 'todos', texto: 'Todos' },
+  { id: 'activos', texto: 'Activos' },
+  { id: 'inactivos', texto: 'Inactivos' },
+]
+
 export default function Productos() {
   const { productos, cargando, error, recargar } = useProductos(true)
   const [editando, setEditando] = useState<Producto | 'nuevo' | null>(null)
+  const [filtro, setFiltro] = useState<Filtro>('todos')
+
+  // Activos arriba y los inactivos al final; cada grupo en orden alfabético
+  const ordenados = [...productos].sort(
+    (a, b) => Number(b.activo) - Number(a.activo) || a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }),
+  )
+  const visibles = ordenados.filter((p) => filtro === 'todos' || (filtro === 'activos' ? p.activo : !p.activo))
+  const cuantos = {
+    todos: productos.length,
+    activos: productos.filter((p) => p.activo).length,
+    inactivos: productos.filter((p) => !p.activo).length,
+  }
 
   if (editando) {
     return (
@@ -52,7 +72,22 @@ export default function Productos() {
       ) : productos.length === 0 ? (
         <Card className="text-center text-sm text-muted">Aún no hay productos. ¡Crea el primero!</Card>
       ) : (
-        productos.map((p) => <FilaProducto key={p.id} producto={p} onEditar={() => setEditando(p)} />)
+        <>
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+            {filtros.map((f) => (
+              <Chip key={f.id} activo={filtro === f.id} onClick={() => setFiltro(f.id)}>
+                {`${f.texto} (${cuantos[f.id]})`}
+              </Chip>
+            ))}
+          </div>
+          {visibles.length === 0 ? (
+            <Card className="text-center text-sm text-muted">
+              {filtro === 'activos' ? 'No hay productos activos.' : 'No hay productos inactivos.'}
+            </Card>
+          ) : (
+            visibles.map((p) => <FilaProducto key={p.id} producto={p} onEditar={() => setEditando(p)} />)
+          )}
+        </>
       )}
     </Contenido>
   )
