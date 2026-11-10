@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Camera, ImageOff, PackagePlus, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { Camera, ImageOff, Minus, PackagePlus, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useProductos } from '../../lib/hooks'
 import { mensajeError, precio } from '../../lib/format'
@@ -38,7 +38,7 @@ export default function Productos() {
       <div className="flex items-end justify-between gap-3">
         <div>
           <TituloPagina>Productos</TituloPagina>
-          <p className="mt-1 text-sm text-muted">Crea, edita y ajusta el inventario.</p>
+          <p className="mt-1 text-sm text-muted">Crea, edita y ajusta el inventario (sumar o restar unidades).</p>
         </div>
       </div>
       <BotonPrincipal icon={Plus} onClick={() => setEditando('nuevo')}>
@@ -72,13 +72,12 @@ function FilaProducto({ producto: p, onEditar }: { producto: Producto; onEditar:
     if (error) setError(mensajeError(error))
   }
 
-  async function sumar(e: FormEvent) {
-    e.preventDefault()
+  async function ajustar(signo: 1 | -1) {
     const n = parseInt(unidades, 10)
-    if (!n || n <= 0) return
+    if (!n || n <= 0) return setError('Escribe cuántas unidades.')
     setOcupado(true)
     setError(null)
-    const err = await sumarStock(p.id, n)
+    const err = await ajustarStock(p.id, signo * n)
     setOcupado(false)
     if (err) setError(err)
     else {
@@ -110,23 +109,54 @@ function FilaProducto({ producto: p, onEditar }: { producto: Producto; onEditar:
       </div>
 
       {sumando ? (
-        <form onSubmit={sumar} className="mt-3 flex gap-2">
-          <input
-            autoFocus
-            type="number"
-            inputMode="numeric"
-            min={1}
-            placeholder="¿Cuántas unidades llegaron?"
-            value={unidades}
-            onChange={(e) => setUnidades(e.target.value)}
-            className="min-w-0 flex-1 rounded-lg border border-line px-3 py-2.5 text-[15px] outline-none focus:border-primary"
-          />
-          <button type="submit" disabled={ocupado} className="rounded-lg bg-primary px-4 text-sm font-semibold text-white disabled:opacity-40">
-            Sumar
-          </button>
-          <button type="button" onClick={() => setSumando(false)} className="px-2 text-muted" aria-label="Cancelar">
-            <X size={18} />
-          </button>
+        <form
+          onSubmit={(e: FormEvent) => {
+            e.preventDefault()
+            ajustar(1)
+          }}
+          className="mt-3 space-y-2"
+        >
+          <div className="flex gap-2">
+            <input
+              autoFocus
+              type="number"
+              inputMode="numeric"
+              min={1}
+              placeholder="¿Cuántas unidades?"
+              value={unidades}
+              onChange={(e) => setUnidades(e.target.value)}
+              className="min-w-0 flex-1 rounded-lg border border-line px-3 py-2.5 text-[15px] outline-none focus:border-primary"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setSumando(false)
+                setUnidades('')
+                setError(null)
+              }}
+              className="px-2 text-muted"
+              aria-label="Cancelar"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={ocupado}
+              onClick={() => ajustar(-1)}
+              className="flex items-center justify-center gap-1.5 rounded-lg border border-line bg-white py-2.5 text-sm font-semibold text-danger disabled:opacity-40"
+            >
+              <Minus size={16} /> Restar
+            </button>
+            <button
+              type="submit"
+              disabled={ocupado}
+              className="flex items-center justify-center gap-1.5 rounded-lg bg-primary py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+            >
+              <Plus size={16} /> Sumar
+            </button>
+          </div>
         </form>
       ) : (
         <div className="mt-3 grid grid-cols-3 gap-2">
@@ -151,13 +181,18 @@ function FilaProducto({ producto: p, onEditar }: { producto: Producto; onEditar:
 }
 
 /**
- * Suma unidades sin pisar ventas que pasen al mismo tiempo:
+ * Suma (n > 0) o resta (n < 0) unidades sin pisar ventas que pasen al mismo tiempo:
  * solo actualiza si el stock no cambió desde que lo leímos; si cambió, reintenta.
  */
-async function sumarStock(id: string, n: number): Promise<string | null> {
+async function ajustarStock(id: string, n: number): Promise<string | null> {
   for (let intento = 0; intento < 5; intento++) {
     const { data: actual, error: e1 } = await supabase.from('productos').select('stock').eq('id', id).single()
     if (e1) return mensajeError(e1)
+    if (actual.stock + n < 0) {
+      return actual.stock === 0
+        ? 'Este producto ya está en 0, no hay unidades para restar.'
+        : `Solo hay ${actual.stock} en inventario, no puedes restar ${-n}.`
+    }
     const { data, error: e2 } = await supabase
       .from('productos')
       .update({ stock: actual.stock + n })
