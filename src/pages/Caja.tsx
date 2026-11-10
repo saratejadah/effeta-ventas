@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, ClipboardList, ImageOff, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react'
+import { CheckCircle2, ClipboardList, PauseCircle, ImageOff, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
-import { usePedidos, useProductos } from '../lib/hooks'
+import { useJornadas, usePedidos, useProductos } from '../lib/hooks'
 import { ajustarCarrito, fijarCantidad, lineasCarrito } from '../lib/carrito'
 import { mensajeError, numeroPedido, precio } from '../lib/format'
 import { textoMetodo } from '../lib/pago'
@@ -36,11 +36,34 @@ const tabs: Tab<Pestana>[] = [
 export default function CajaPage() {
   const { perfil, salir } = useAuth()
   const [pestana, setPestana] = useState<Pestana>('vender')
+  const { abierta, cargando, error } = useJornadas()
 
   return (
     <div className="min-h-dvh">
       <Header nombre={perfil?.nombre} onSalir={salir} />
-      {pestana === 'vender' ? <Vender nombreCajero={perfil?.nombre} /> : <PedidosOnline />}
+      {cargando ? (
+        <Contenido className="pt-5">
+          <Cargando />
+        </Contenido>
+      ) : error ? (
+        <Contenido className="pt-5">
+          <Aviso tipo="error">No pudimos cargar la jornada: {error}</Aviso>
+        </Contenido>
+      ) : !abierta ? (
+        <Contenido className="pt-10">
+          <Card className="text-center">
+            <PauseCircle size={36} strokeWidth={1.5} className="mx-auto text-primary" />
+            <p className="mt-3 text-[17px] font-semibold">La caja está en pausa</p>
+            <p className="mt-1 text-sm text-muted">
+              No hay una jornada de ventas abierta. Cuando el admin abra una nueva, aquí podrás vender de nuevo.
+            </p>
+          </Card>
+        </Contenido>
+      ) : pestana === 'vender' ? (
+        <Vender nombreCajero={perfil?.nombre} />
+      ) : (
+        <PedidosOnline jornadaId={abierta.id} />
+      )}
       <BottomNav tabs={tabs} activo={pestana} onChange={setPestana} />
     </div>
   )
@@ -84,7 +107,13 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
     setEnviando(false)
     if (error) {
       const msg = mensajeError(error)
-      setError(msg.toLowerCase().includes('stock') ? 'No alcanza el stock de algún producto. Ya actualizamos las cantidades.' : msg)
+      setError(
+        msg.toLowerCase().includes('stock')
+          ? 'No alcanza el stock de algún producto. Ya actualizamos las cantidades.'
+          : msg.toLowerCase().includes('jornada')
+            ? 'La jornada de ventas se cerró, así que no se registró esta venta.'
+            : msg,
+      )
       recargar()
       return
     }
@@ -257,8 +286,8 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
 
 type Filtro = 'por-cobrar' | 'por-entregar'
 
-export function PedidosOnline() {
-  const { pedidos, cargando, error, recargar } = usePedidos()
+export function PedidosOnline({ jornadaId }: { jornadaId: string }) {
+  const { pedidos, cargando, error, recargar } = usePedidos(jornadaId)
   const [filtro, setFiltro] = useState<Filtro>('por-cobrar')
   const [busqueda, setBusqueda] = useState('')
 
