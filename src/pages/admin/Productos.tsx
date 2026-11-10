@@ -38,7 +38,7 @@ export default function Productos() {
       <div className="flex items-end justify-between gap-3">
         <div>
           <TituloPagina>Productos</TituloPagina>
-          <p className="mt-1 text-sm text-muted">Crea, edita y ajusta el inventario (sumar o restar unidades).</p>
+          <p className="mt-1 text-sm text-muted">Crea, edita y ajusta el inventario.</p>
         </div>
       </div>
       <BotonPrincipal icon={Plus} onClick={() => setEditando('nuevo')}>
@@ -59,8 +59,8 @@ export default function Productos() {
 }
 
 function FilaProducto({ producto: p, onEditar }: { producto: Producto; onEditar: () => void }) {
-  const [sumando, setSumando] = useState(false)
-  const [unidades, setUnidades] = useState('')
+  // Al abrir el ajuste guardamos el stock de ese momento (base) y la cantidad que se quiere dejar (nuevo)
+  const [ajuste, setAjuste] = useState<{ base: number; nuevo: string } | null>(null)
   const [ocupado, setOcupado] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -72,18 +72,33 @@ function FilaProducto({ producto: p, onEditar }: { producto: Producto; onEditar:
     if (error) setError(mensajeError(error))
   }
 
-  async function ajustar(signo: 1 | -1) {
-    const n = parseInt(unidades, 10)
-    if (!n || n <= 0) return setError('Escribe cuántas unidades.')
+  const nuevoNum = ajuste ? Math.max(0, parseInt(ajuste.nuevo, 10) || 0) : 0
+  const diferencia = ajuste ? nuevoNum - ajuste.base : 0
+
+  function abrirAjuste() {
+    setError(null)
+    setAjuste({ base: p.stock, nuevo: String(p.stock) })
+  }
+
+  function cerrarAjuste() {
+    setAjuste(null)
+    setError(null)
+  }
+
+  function cambiar(n: number) {
+    setAjuste((a) => (a ? { ...a, nuevo: String(Math.max(0, n)) } : a))
+  }
+
+  async function guardarAjuste(e: FormEvent) {
+    e.preventDefault()
+    if (!ajuste || diferencia === 0) return cerrarAjuste()
     setOcupado(true)
     setError(null)
-    const err = await ajustarStock(p.id, signo * n)
+    // Aplicamos solo la diferencia, así no se pisan ventas que ocurran mientras se ajusta
+    const err = await ajustarStock(p.id, diferencia)
     setOcupado(false)
     if (err) setError(err)
-    else {
-      setUnidades('')
-      setSumando(false)
-    }
+    else setAjuste(null)
   }
 
   return (
@@ -108,59 +123,54 @@ function FilaProducto({ producto: p, onEditar }: { producto: Producto; onEditar:
         </div>
       </div>
 
-      {sumando ? (
-        <form
-          onSubmit={(e: FormEvent) => {
-            e.preventDefault()
-            ajustar(1)
-          }}
-          className="mt-3 space-y-2"
-        >
-          <div className="flex gap-2">
+      {ajuste ? (
+        <form onSubmit={guardarAjuste} className="mt-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <button type="button" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-ink transition active:bg-page disabled:opacity-30" aria-label="Quitar uno" disabled={nuevoNum <= 0} onClick={() => cambiar(nuevoNum - 1)}>
+              <Minus size={20} />
+            </button>
             <input
-              autoFocus
               type="number"
               inputMode="numeric"
-              min={1}
-              placeholder="¿Cuántas unidades?"
-              value={unidades}
-              onChange={(e) => setUnidades(e.target.value)}
-              className="min-w-0 flex-1 rounded-lg border border-line px-3 py-2.5 text-[15px] outline-none focus:border-primary"
+              min={0}
+              aria-label="Unidades en inventario"
+              value={ajuste.nuevo}
+              onChange={(e) => setAjuste({ ...ajuste, nuevo: e.target.value.replace(/\D/g, '') })}
+              onFocus={(e) => e.target.select()}
+              className="h-12 min-w-0 flex-1 rounded-xl border border-line text-center text-xl font-bold tabular-nums outline-none [appearance:textfield] focus:border-primary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
-            <button
-              type="button"
-              onClick={() => {
-                setSumando(false)
-                setUnidades('')
-                setError(null)
-              }}
-              className="px-2 text-muted"
-              aria-label="Cancelar"
-            >
-              <X size={18} />
+            <button type="button" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-ink transition active:bg-page disabled:opacity-30" aria-label="Agregar uno" onClick={() => cambiar(nuevoNum + 1)}>
+              <Plus size={20} />
             </button>
           </div>
+          <p className="text-center text-xs text-muted">
+            {diferencia === 0 ? (
+              'Usa − y + o escribe la cantidad que hay'
+            ) : (
+              <>
+                Antes {ajuste.base} ·{' '}
+                <span className={`font-semibold ${diferencia > 0 ? 'text-ok' : 'text-danger'}`}>
+                  {diferencia > 0 ? `+${diferencia}` : diferencia}
+                </span>
+              </>
+            )}
+          </p>
           <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              disabled={ocupado}
-              onClick={() => ajustar(-1)}
-              className="flex items-center justify-center gap-1.5 rounded-lg border border-line bg-white py-2.5 text-sm font-semibold text-danger disabled:opacity-40"
-            >
-              <Minus size={16} /> Restar
-            </button>
+            <BotonSecundario type="button" onClick={cerrarAjuste}>
+              Cancelar
+            </BotonSecundario>
             <button
               type="submit"
-              disabled={ocupado}
-              className="flex items-center justify-center gap-1.5 rounded-lg bg-primary py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+              disabled={ocupado || diferencia === 0}
+              className="rounded-lg bg-primary py-2.5 text-sm font-semibold text-white disabled:opacity-40"
             >
-              <Plus size={16} /> Sumar
+              {ocupado ? 'Guardando…' : 'Guardar'}
             </button>
           </div>
         </form>
       ) : (
         <div className="mt-3 grid grid-cols-3 gap-2">
-          <BotonSecundario className="px-2" icon={PackagePlus} onClick={() => setSumando(true)}>
+          <BotonSecundario className="px-2" icon={PackagePlus} onClick={abrirAjuste}>
             Stock
           </BotonSecundario>
           <BotonSecundario className="px-2" icon={Pencil} onClick={onEditar}>
