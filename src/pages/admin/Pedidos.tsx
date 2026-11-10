@@ -6,6 +6,7 @@ import { hora, mensajeError, numeroPedido, precio } from '../../lib/format'
 import type { Canal, Estado, Pedido } from '../../lib/types'
 import { PedidoCard } from '../../components/PedidoCard'
 import { AccionesPago } from '../../components/AccionesPago'
+import { SelectorJornada, type VistaJornada } from '../../components/Jornadas'
 import { Aviso, BotonSecundario, Card, Cargando, Chip, Contenido, EstadoPill, TituloPagina } from '../../components/ui'
 
 const estados: { id: Estado | 'todos'; texto: string }[] = [
@@ -22,8 +23,8 @@ const canales: { id: Canal | 'todos'; texto: string }[] = [
   { id: 'presencial', texto: 'En caja' },
 ]
 
-export default function Pedidos() {
-  const { pedidos, cargando, error, recargar } = usePedidos()
+export default function Pedidos({ jornadas, jornada, onElegir }: VistaJornada) {
+  const { pedidos, cargando, error, recargar } = usePedidos(jornada.id)
   const [estado, setEstado] = useState<Estado | 'todos'>('todos')
   const [canal, setCanal] = useState<Canal | 'todos'>('todos')
   const [abierto, setAbierto] = useState<string | null>(null)
@@ -33,7 +34,10 @@ export default function Pedidos() {
   const visibles = pedidos.filter((p) => (estado === 'todos' || p.estado === estado) && (canal === 'todos' || p.canal === canal))
 
   async function cancelar(p: Pedido) {
-    if (!window.confirm(`¿Cancelar el pedido ${numeroPedido(p.numero)} de ${p.nombre_cliente}? Las unidades vuelven al inventario.`)) return
+    const unidades = jornada.abierta
+      ? 'Las unidades vuelven al inventario.'
+      : 'Como esta jornada ya se cerró, las unidades no vuelven al inventario.'
+    if (!window.confirm(`¿Cancelar el pedido ${numeroPedido(p.numero)} de ${p.nombre_cliente}? ${unidades}`)) return
     setCancelando(p.id)
     setErrorAccion(null)
     const { error } = await supabase.rpc('cancelar_pedido', { p_pedido_id: p.id })
@@ -46,7 +50,9 @@ export default function Pedidos() {
     const aviso =
       p.estado === 'cancelado'
         ? `¿Eliminar para siempre el pedido ${numeroPedido(p.numero)} de ${p.nombre_cliente}? Desaparece de los registros y no se puede deshacer.`
-        : `¿Eliminar para siempre el pedido ${numeroPedido(p.numero)} de ${p.nombre_cliente}? Las unidades vuelven al inventario, el pedido desaparece de los registros y no se puede deshacer.`
+        : jornada.abierta
+          ? `¿Eliminar para siempre el pedido ${numeroPedido(p.numero)} de ${p.nombre_cliente}? Las unidades vuelven al inventario, el pedido desaparece de los registros y no se puede deshacer.`
+          : `¿Eliminar para siempre el pedido ${numeroPedido(p.numero)} de ${p.nombre_cliente}? Desaparece de los registros y no se puede deshacer. (Como esta jornada ya se cerró, las unidades no vuelven al inventario.)`
     if (!window.confirm(aviso)) return
     setCancelando(p.id)
     setErrorAccion(null)
@@ -65,6 +71,8 @@ export default function Pedidos() {
         <TituloPagina>Pedidos</TituloPagina>
         <p className="mt-1 text-sm text-muted">Todos los pedidos de la jornada, en vivo. Toca uno para ver el detalle.</p>
       </div>
+
+      <SelectorJornada jornadas={jornadas} actual={jornada} onElegir={onElegir} />
 
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
         {estados.map((e) => (

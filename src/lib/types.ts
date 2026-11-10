@@ -22,6 +22,14 @@ export interface Producto {
   created_at: string
 }
 
+export interface Jornada {
+  id: string
+  nombre: string
+  abierta: boolean
+  created_at: string
+  cerrada_at: string | null
+}
+
 export interface PedidoItem {
   id: string
   pedido_id: string
@@ -34,6 +42,8 @@ export interface PedidoItem {
 
 export interface Pedido {
   id: string
+  jornada_id: string
+  /** Número dentro de su jornada (empieza en 1 en cada jornada) */
   numero: number
   nombre_cliente: string
   telefono: string | null

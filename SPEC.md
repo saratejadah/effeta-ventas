@@ -68,7 +68,8 @@ Ya definida en `schema.sql` (correrlo en el SQL Editor de Supabase antes de empe
 
 Reglas clave que la app debe respetar:
 - **Nunca** insertar pedidos directo en las tablas. Siempre usar `supabase.rpc('crear_pedido', { p_nombre, p_telefono, p_items })`. Esa función descuenta el stock de forma atómica y falla si no hay suficiente.
-- Cancelar con `supabase.rpc('cancelar_pedido', { p_pedido_id })`, que devuelve el stock.
+- Cancelar con `supabase.rpc('cancelar_pedido', { p_pedido_id })`, que devuelve el stock (solo si el pedido es de la jornada abierta).
+- **Jornadas:** cada pedido pertenece a una jornada (`pedidos.jornada_id`) y su número empieza en #1 en cada jornada. Solo hay una abierta a la vez; `crear_pedido` vende en ella y falla si no hay ninguna (la caja y el link quedan en pausa). El admin cierra con `cerrar_jornada()` (el stock de todos los productos vuelve a 0) y abre otra con `abrir_jornada(p_nombre)`. Resumen y Pedidos del admin permiten ver jornadas anteriores.
 - El número de pedido es `pedidos.numero`; mostrarlo como `#0001`.
 
 ## Pantallas

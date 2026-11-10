@@ -5,9 +5,10 @@ import { usePedidos, useProductos } from '../../lib/hooks'
 import { descargarCSV } from '../../lib/csv'
 import { nombreItem, numeroPedido, precio } from '../../lib/format'
 import { Aviso, BotonSecundario, Card, Cargando, Hero, IconBox, SectionLabel, StatCard } from '../../components/ui'
+import { AbrirJornada, CerrarJornada, SelectorJornada, fechaCorta, nombreSiguiente, type VistaJornada } from '../../components/Jornadas'
 
-export default function Resumen({ nombre }: { nombre?: string }) {
-  const { pedidos, cargando: c1, error: e1 } = usePedidos()
+export default function Resumen({ nombre, jornadas, abierta, jornada, onElegir, onCambio }: { nombre?: string } & VistaJornada) {
+  const { pedidos, cargando: c1, error: e1 } = usePedidos(jornada.id)
   const { productos, cargando: c2, error: e2 } = useProductos(true)
 
   const datos = useMemo(() => {
@@ -33,9 +34,37 @@ export default function Resumen({ nombre }: { nombre?: string }) {
     })
     const sinMetodo = cobrados.filter((p) => !p.metodo_pago)
 
-    // Unidades vendidas por producto (pedidos no cancelados)
-    const vendidas = new Map<string, number>()
-    for (const p of validos) for (const i of p.pedido_items ?? []) if (i.producto_id) vendidas.set(i.producto_id, (vendidas.get(i.producto_id) ?? 0) + i.cantidad)
+    // Unidades vendidas por producto (pedidos no cancelados de esta jornada).
+    // Se agrupa por producto, o por nombre si el producto ya se eliminó.
+    const vendidas = new Map<string, { nombre: string; vendidas: number }>()
+    for (const p of validos)
+      for (const i of p.pedido_items ?? []) {
+        const clave = i.producto_id ?? `nombre:${nombreItem(i)}`
+        const fila = vendidas.get(clave) ?? { nombre: nombreItem(i), vendidas: 0 }
+        fila.vendidas += i.cantidad
+        vendidas.set(clave, fila)
+      }
+
+    // Jornada abierta: todos los productos con su stock actual. Jornada cerrada: solo lo que se vendió.
+    const porProducto: { clave: string; nombre: string; activo: boolean; vendidas: number; stock: number | null; precio: number | null }[] =
+      jornada.abierta
+        ? productos.map((p) => ({
+            clave: p.id,
+            nombre: p.nombre,
+            activo: p.activo,
+            vendidas: vendidas.get(p.id)?.vendidas ?? 0,
+            stock: p.stock,
+            precio: p.precio,
+          }))
+        : [...vendidas.entries()].map(([clave, v]) => ({
+            clave,
+            nombre: v.nombre,
+            activo: true,
+            vendidas: v.vendidas,
+            stock: null,
+            precio: null,
+          }))
+    porProducto.sort((a, b) => b.vendidas - a.vendidas || a.nombre.localeCompare(b.nombre, 'es'))
 
     return {
       totalVendido: cobrados.reduce((s, p) => s + p.total, 0),
@@ -43,14 +72,14 @@ export default function Resumen({ nombre }: { nombre?: string }) {
       numPedidos: validos.length,
       numPorCobrar: porCobrar.length,
       agotados: productos.filter((p) => p.activo && p.stock <= 0).length,
+      unidades: [...vendidas.values()].reduce((s, v) => s + v.vendidas, 0),
+      maxVendidas: Math.max(1, ...porProducto.map((p) => p.vendidas)),
       porMetodo,
       sinMetodo: { pedidos: sinMetodo.length, total: sinMetodo.reduce((s, p) => s + p.total, 0) },
       porCajero: [...porCajero.values()].sort((a, b) => b.total - a.total),
-      porProducto: productos
-        .map((p) => ({ producto: p, vendidas: vendidas.get(p.id) ?? 0 }))
-        .sort((a, b) => b.vendidas - a.vendidas),
+      porProducto,
     }
-  }, [pedidos, productos])
+  }, [pedidos, productos, jornada.abierta])
 
   function exportarPedidos() {
     const filas: (string | number | null)[][] = [
@@ -72,15 +101,26 @@ export default function Resumen({ nombre }: { nombre?: string }) {
         (p.pedido_items ?? []).map((i) => `${i.cantidad}x ${nombreItem(i)}`).join(', '),
       ])
     }
-    descargarCSV(`pedidos-${hoy()}.csv`, filas)
+    descargarCSV(`pedidos-${archivo(jornada.nombre)}.csv`, filas)
   }
 
   function exportarProductos() {
-    const filas: (string | number)[][] = [['Producto', 'Precio', 'Vendidas', 'Restantes', 'Total vendido', 'Activo']]
-    for (const { producto: p, vendidas } of datos.porProducto) {
-      filas.push([p.nombre, p.precio, vendidas, p.stock, p.precio * vendidas, p.activo ? 'sí' : 'no'])
+    // Total vendido por producto según lo que realmente se cobró en cada línea
+    const totales = new Map<string, number>()
+    for (const p of pedidos)
+      if (p.estado !== 'cancelado')
+        for (const i of p.pedido_items ?? []) {
+          const clave = i.producto_id ?? `nombre:${nombreItem(i)}`
+          totales.set(clave, (totales.get(clave) ?? 0) + i.cantidad * i.precio_unitario)
+        }
+    const filas: (string | number | null)[][] = jornada.abierta
+      ? [['Producto', 'Precio', 'Vendidas', 'Restantes', 'Total vendido', 'Activo']]
+      : [['Producto', 'Vendidas', 'Total vendido']]
+    for (const p of datos.porProducto) {
+      const total = totales.get(p.clave) ?? 0
+      filas.push(jornada.abierta ? [p.nombre, p.precio, p.vendidas, p.stock, total, p.activo ? 'sí' : 'no'] : [p.nombre, p.vendidas, total])
     }
-    descargarCSV(`productos-${hoy()}.csv`, filas)
+    descargarCSV(`productos-${archivo(jornada.nombre)}.csv`, filas)
   }
 
   const primerNombre = nombre?.split(' ')[0]
@@ -88,11 +128,17 @@ export default function Resumen({ nombre }: { nombre?: string }) {
   return (
     <>
       <Hero
-        etiqueta="Resumen de la jornada"
+        etiqueta={`Resumen · ${jornada.nombre}`}
         titulo={primerNombre ? `Hola, ${primerNombre}` : 'Hola'}
-        subtitulo="Así va la jornada de ventas. Todo se actualiza en vivo."
+        subtitulo={
+          jornada.abierta
+            ? 'Así va la jornada de ventas. Todo se actualiza en vivo.'
+            : `Esta jornada se cerró el ${fechaCorta(jornada.cerrada_at ?? jornada.created_at)}. Estos son sus resultados.`
+        }
       />
       <main className="relative mx-auto -mt-10 max-w-[600px] space-y-5 px-4">
+        <SelectorJornada jornadas={jornadas} actual={jornada} onElegir={onElegir} />
+        {!abierta && <AbrirJornada key={jornadas.length} sugerido={nombreSiguiente(jornadas)} onAbierta={onCambio} />}
         {c1 || c2 ? (
           <Card>
             <Cargando />
@@ -104,7 +150,11 @@ export default function Resumen({ nombre }: { nombre?: string }) {
             <div className="grid grid-cols-3 gap-3">
               <StatCard color="verde" valor={precio(datos.totalVendido)} etiqueta="Total vendido" />
               <StatCard color="oscuro" valor={datos.numPedidos} etiqueta="Pedidos" />
-              <StatCard color="naranja" valor={datos.agotados} etiqueta="Productos agotados" />
+              {jornada.abierta ? (
+                <StatCard color="naranja" valor={datos.agotados} etiqueta="Productos agotados" />
+              ) : (
+                <StatCard color="naranja" valor={datos.unidades} etiqueta="Unidades vendidas" />
+              )}
             </div>
 
             {datos.numPorCobrar > 0 && (
@@ -168,17 +218,18 @@ export default function Resumen({ nombre }: { nombre?: string }) {
               <SectionLabel className="mb-2">Unidades por producto</SectionLabel>
               <Card className="space-y-4">
                 {datos.porProducto.length === 0 ? (
-                  <p className="text-sm text-muted">Aún no hay productos.</p>
+                  <p className="text-sm text-muted">{jornada.abierta ? 'Aún no hay productos.' : 'En esta jornada no se vendió nada.'}</p>
                 ) : (
-                  datos.porProducto.map(({ producto: p, vendidas }) => {
-                    const total = vendidas + p.stock
-                    const pct = total > 0 ? Math.round((vendidas / total) * 100) : 0
+                  datos.porProducto.map((p) => {
+                    const base = p.stock === null ? datos.maxVendidas : p.vendidas + p.stock
+                    const pct = base > 0 ? Math.round((p.vendidas / base) * 100) : 0
                     return (
-                      <div key={p.id}>
+                      <div key={p.clave}>
                         <div className="flex items-baseline justify-between gap-3">
                           <p className={`truncate text-sm font-semibold ${p.activo ? '' : 'text-muted'}`}>{p.nombre}</p>
                           <p className="shrink-0 text-xs text-muted">
-                            <span className="font-semibold text-accent">{vendidas} vendidas</span> · {p.stock} quedan
+                            <span className="font-semibold text-accent">{p.vendidas} vendidas</span>
+                            {p.stock !== null && ` · ${p.stock} quedan`}
                           </p>
                         </div>
                         <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-page">
@@ -202,6 +253,19 @@ export default function Resumen({ nombre }: { nombre?: string }) {
                 </BotonSecundario>
               </div>
             </section>
+
+            {jornada.abierta && (
+              <section className="space-y-2">
+                <SectionLabel>Terminar la jornada</SectionLabel>
+                <CerrarJornada
+                  jornada={jornada}
+                  porCobrar={datos.numPorCobrar}
+                  totalPorCobrar={datos.totalPorCobrar}
+                  onExportar={exportarPedidos}
+                  onCerrada={onCambio}
+                />
+              </section>
+            )}
           </>
         )}
       </main>
@@ -209,6 +273,14 @@ export default function Resumen({ nombre }: { nombre?: string }) {
   )
 }
 
-function hoy() {
-  return new Date().toISOString().slice(0, 10)
+/** "Jornada 2" -> "jornada-2" (para el nombre del archivo) */
+function archivo(nombre: string) {
+  return (
+    nombre
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'jornada'
+  )
 }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, CheckCircle2, ImageOff, ShoppingBag } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, ImageOff, PauseCircle, ShoppingBag } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { useProductos } from '../lib/hooks'
+import { useJornadas, useProductos } from '../lib/hooks'
 import { ajustarCarrito, fijarCantidad, lineasCarrito } from '../lib/carrito'
 import { mensajeError, numeroPedido, precio } from '../lib/format'
 import { textoMetodo } from '../lib/pago'
@@ -35,6 +35,9 @@ interface Confirmacion {
 
 export default function PedidoPage() {
   const { productos, cargando, error: errorCarga, recargar } = useProductos()
+  const jornadas = useJornadas()
+  // En pausa: ya se sabe que no hay jornada abierta (si falla la consulta, dejamos pedir y decide el servidor)
+  const enPausa = !jornadas.cargando && !jornadas.error && !jornadas.abierta
   const [carrito, setCarrito] = useState<Carrito>({})
   const [paso, setPaso] = useState<Paso>('elegir')
   const [nombre, setNombre] = useState('')
@@ -78,7 +81,10 @@ export default function PedidoPage() {
 
     if (error) {
       const msg = mensajeError(error)
-      if (msg.toLowerCase().includes('stock')) {
+      if (msg.toLowerCase().includes('jornada')) {
+        await jornadas.recargar()
+        setError('En este momento no estamos recibiendo pedidos.')
+      } else if (msg.toLowerCase().includes('stock')) {
         setError('Alguien se adelantó y ya no quedan suficientes unidades de algún producto. Revisa las cantidades y vuelve a intentarlo.')
         await recargar()
         setPaso('elegir')
@@ -162,6 +168,27 @@ export default function PedidoPage() {
           <BotonSecundario onClick={nuevoPedido} className="w-full">
             Hacer otro pedido
           </BotonSecundario>
+        </Contenido>
+      </div>
+    )
+  }
+
+  /* ---------- Sin jornada abierta ---------- */
+  if (enPausa) {
+    return (
+      <div className="min-h-dvh pb-10">
+        <Header />
+        <Hero
+          etiqueta="Effetá Mazuren"
+          titulo="Pronto volvemos"
+          subtitulo="Gracias por apoyar al grupo. ¡Te esperamos en la próxima jornada!"
+        />
+        <Contenido className="-mt-10">
+          <Card className="text-center">
+            <PauseCircle size={36} strokeWidth={1.5} className="mx-auto text-primary" />
+            <p className="mt-3 text-[17px] font-semibold">En este momento no estamos recibiendo pedidos</p>
+            <p className="mt-1 text-sm text-muted">Pronto abriremos una nueva jornada de ventas. Vuelve a este mismo link.</p>
+          </Card>
         </Contenido>
       </div>
     )
