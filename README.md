@@ -18,6 +18,7 @@ App web para las jornadas de ventas del grupo Effetá. Ver `SPEC.md` para la des
    - Nombre: `crear-cajero` (exactamente así).
    - Borra el código de ejemplo, pega el contenido de `supabase/functions/crear-cajero/index.ts` y dale *Deploy*.
    - En la pestaña *Details/Settings* de la función, **desactiva "Verify JWT"** y guarda. (La función revisa por su cuenta que quien la usa sea admin.)
+   - Esta misma función sirve para crear cajeros con usuario (ej. `caja1`, sin correo), cambiarles la contraseña y ver con qué usuario entra cada uno. **Cada vez que cambie `index.ts` hay que volver a pegarlo y darle *Deploy*.**
 
 ## Publicar en Vercel
 
