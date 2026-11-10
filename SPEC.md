@@ -91,7 +91,7 @@ Reglas clave que la app debe respetar:
 - Pestaña **Pedidos online**: los pendientes en tiempo real, con buscador por número o nombre y botones "Marcar pagado" y "Entregado".
 
 ### 4. `/admin`
-- **Productos:** crear, editar, activar o desactivar. Ajustar stock (sumar unidades) y subir foto a Supabase Storage.
+- **Productos:** crear, editar, activar o desactivar. Ajustar stock (sumar o restar unidades, sin bajar de 0) y subir foto a Supabase Storage.
 - **Cajeros:** lista; crear cajero (nombre, email, contraseña temporal); desactivar.
   - Para crear usuarios hace falta la service role key, así que esto va en una **Edge Function** `crear-cajero` que verifica que quien llama es admin y usa `auth.admin.createUser` con `user_metadata: { nombre, rol: 'cajero' }`.
 - **Pedidos:** tabla en tiempo real con número, cliente, canal, cajero, estado, total y hora. Filtros por estado y canal. Ver detalle; cancelar (admin).
