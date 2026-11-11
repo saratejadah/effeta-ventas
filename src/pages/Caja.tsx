@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, ClipboardList, Globe, PauseCircle, X, ImageOff, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react'
+import { CheckCircle2, ClipboardList, PauseCircle, X, ImageOff, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { useJornadas, usePedidos, useProductos } from '../lib/hooks'
@@ -40,14 +40,6 @@ export default function CajaPage() {
   const { abierta, cargando, error } = useJornadas()
   const pedidos = usePedidos(abierta ? abierta.id : cargando ? undefined : null)
 
-  // Pedidos del link que todavía no se han entregado (la persona no está en la caja: fácil olvidarlos)
-  const distancia = pedidos.pedidos.filter((p) => p.canal === 'online' && (p.estado === 'pendiente' || p.estado === 'pagado'))
-  function verDistancia() {
-    setFiltro(distancia.some((p) => p.estado === 'pagado') ? 'por-entregar' : 'por-cobrar')
-    setPestana('pedidos')
-    window.scrollTo({ top: 0 })
-  }
-
   return (
     <div className="min-h-dvh">
       <Header nombre={perfil?.nombre} onSalir={salir} ancho />
@@ -70,7 +62,7 @@ export default function CajaPage() {
           </Card>
         </Contenido>
       ) : pestana === 'vender' ? (
-        <Vender nombreCajero={perfil?.nombre} distancia={distancia.length} onVerDistancia={verDistancia} />
+        <Vender nombreCajero={perfil?.nombre} />
       ) : (
         <PedidosOnline {...pedidos} filtro={filtro} onFiltro={setFiltro} />
       )}
@@ -81,7 +73,7 @@ export default function CajaPage() {
 
 /* ================= Vender ================= */
 
-function Vender({ nombreCajero, distancia, onVerDistancia }: { nombreCajero?: string; distancia: number; onVerDistancia: () => void }) {
+function Vender({ nombreCajero }: { nombreCajero?: string }) {
   const { productos, cargando, error: errorCarga, recargar } = useProductos()
   const [carrito, setCarrito] = useState<Carrito>({})
   const [cliente, setCliente] = useState('')
@@ -292,20 +284,6 @@ function Vender({ nombreCajero, distancia, onVerDistancia }: { nombreCajero?: st
               {primerNombre ? `Hola, ${primerNombre}. ` : ''}Toca un producto para sumarlo a la venta.
             </p>
           </div>
-
-          {distancia > 0 && (
-            <button
-              onClick={onVerDistancia}
-              className="flex w-full items-center gap-3 rounded-2xl border border-[#7A3FB0]/30 bg-[#F1E8FB] px-4 py-3 text-left text-[#7A3FB0]"
-            >
-              <Globe size={22} className="shrink-0" />
-              <span className="min-w-0 flex-1 text-sm font-semibold">
-                {distancia === 1 ? 'Hay 1 pedido a distancia por entregar' : `Hay ${distancia} pedidos a distancia por entregar`}
-                <span className="block font-medium">Sepáralos antes de venderlos en la caja.</span>
-              </span>
-              <span className="shrink-0 text-xs font-semibold underline">Ver</span>
-            </button>
-          )}
 
           {ultima && (
             <div className={`flex items-center gap-3 rounded-2xl px-4 py-3 ${ultima.pagado ? 'bg-ok-bg text-ok' : 'bg-warn-bg text-warn'}`}>
