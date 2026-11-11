@@ -9,7 +9,7 @@ import { textoMetodo } from '../lib/pago'
 import type { Carrito, MetodoPago } from '../lib/types'
 import { PedidoCard } from '../components/PedidoCard'
 import { AccionesPago } from '../components/AccionesPago'
-import { CalculadoraVueltas } from '../components/Vueltas'
+import { sugerencias } from '../components/Vueltas'
 import {
   Aviso,
   BotonPrincipal,
@@ -81,7 +81,7 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [ultima, setUltima] = useState<{ numero: number; total: number; pagado: boolean; metodo: MetodoPago | null } | null>(null)
-  const [ventas, setVentas] = useState(0) // para limpiar la calculadora de vueltas en cada venta nueva
+  const [recibido, setRecibido] = useState('') // con cuánto paga en efectivo (solo para calcular las vueltas)
 
   useEffect(() => {
     setCarrito((c) => ajustarCarrito(c, productos))
@@ -90,6 +90,10 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
   const lineas = useMemo(() => lineasCarrito(carrito, productos), [productos, carrito])
   const total = lineas.reduce((s, l) => s + l.subtotal, 0)
   const unidades = lineas.reduce((s, l) => s + l.cantidad, 0)
+
+  const efectivo = metodo === 'efectivo' && pagado !== false && total > 0
+  const monto = parseInt(recibido, 10) || 0
+  const vueltas = monto - total
 
   // Qué falta para poder registrar (no asumimos que ya pagó)
   const falta =
@@ -125,13 +129,13 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
     setCliente('')
     setMetodo(null)
     setPagado(null)
-    setVentas((n) => n + 1)
+    setRecibido('')
   }
 
   const primerNombre = nombreCajero?.split(' ')[0]
 
   return (
-    <Contenido className="space-y-4 pb-44 pt-5">
+    <Contenido className={`space-y-4 pt-5 ${efectivo ? 'pb-60' : 'pb-44'}`}>
       <div>
         <TituloPagina>Vender</TituloPagina>
         <p className="mt-1 text-sm text-muted">
@@ -248,7 +252,10 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
               <button
                 key={texto}
                 type="button"
-                onClick={() => setPagado(valor)}
+                onClick={() => {
+                  setPagado(valor)
+                  setError(null)
+                }}
                 className={`rounded-lg border px-3 py-3 text-sm font-semibold transition ${
                   pagado === valor
                     ? valor
@@ -264,22 +271,64 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
         </div>
         <div className="space-y-2">
           <SectionLabel>{pagado === false ? 'Método de pago (opcional)' : 'Método de pago'}</SectionLabel>
-          <SelectorMetodoPago valor={metodo} onChange={setMetodo} />
+          <SelectorMetodoPago
+            valor={metodo}
+            onChange={(m) => {
+              setMetodo(m)
+              setError(null)
+            }}
+          />
           {metodo === 'transferencia' && <DatosTransferencia />}
-          {metodo === 'efectivo' && pagado !== false && <CalculadoraVueltas key={ventas} total={total} />}
         </div>
         {error && <Aviso tipo="error">{error}</Aviso>}
       </Card>
 
       <div className="fixed inset-x-0 bottom-[calc(62px+env(safe-area-inset-bottom))] z-20 border-t border-line bg-white/95 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-[600px] items-center gap-3">
-          <div className="shrink-0">
-            <p className="text-[11px] text-muted">Total</p>
-            <p className="text-xl font-bold tabular-nums text-ink">{precio(total)}</p>
+        <div className="mx-auto max-w-[600px] space-y-2.5">
+          {efectivo && (
+            <div className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4">
+              <label className="relative shrink-0">
+                <span className="sr-only">¿Con cuánto paga?</span>
+                <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[13px] font-bold text-muted">$</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Paga con"
+                  value={monto ? monto.toLocaleString('es-CO') : ''}
+                  onChange={(e) => setRecibido(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                  onFocus={(e) => e.target.select()}
+                  className="w-[104px] rounded-lg border border-line bg-white py-2 pl-6 pr-2 text-[14px] font-bold tabular-nums text-ink outline-none placeholder:font-medium placeholder:text-muted/70 focus:border-primary"
+                />
+              </label>
+              {[total, ...sugerencias(total)].map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setRecibido(String(m))}
+                  className={`shrink-0 rounded-lg border px-2.5 py-2 text-[13px] font-semibold tabular-nums transition ${
+                    monto === m ? 'border-primary bg-[#E8EAFB] text-primary ring-1 ring-primary' : 'border-line bg-white text-ink'
+                  }`}
+                >
+                  {m === total ? 'Exacto' : precio(m)}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <div className="shrink-0">
+              <p className="text-[11px] text-muted">Total</p>
+              <p className="text-xl font-bold tabular-nums text-ink">{precio(total)}</p>
+            </div>
+            {efectivo && monto > 0 && (
+              <div className={`shrink-0 rounded-lg px-2.5 py-1 ${vueltas >= 0 ? 'bg-ok-bg text-ok' : 'bg-warn-bg text-warn'}`}>
+                <p className="text-[11px] font-medium">{vueltas >= 0 ? 'Vueltas' : 'Falta'}</p>
+                <p className="text-xl font-bold tabular-nums">{precio(Math.abs(vueltas))}</p>
+              </div>
+            )}
+            <BotonPrincipal onClick={registrar} disabled={enviando || unidades === 0} icon={Wallet}>
+              {enviando ? 'Registrando…' : unidades > 0 && falta ? falta : 'Registrar venta'}
+            </BotonPrincipal>
           </div>
-          <BotonPrincipal onClick={registrar} disabled={enviando || unidades === 0} icon={Wallet}>
-            {enviando ? 'Registrando…' : unidades > 0 && falta ? falta : 'Registrar venta'}
-          </BotonPrincipal>
         </div>
       </div>
     </Contenido>
