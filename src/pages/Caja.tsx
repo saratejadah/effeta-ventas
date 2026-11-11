@@ -88,6 +88,8 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
   }, [productos])
 
   const lineas = useMemo(() => lineasCarrito(carrito, productos), [productos, carrito])
+  // Lo agotado no se muestra. Si las últimas unidades están en esta venta, el producto sigue visible (con "Quedan 0").
+  const disponibles = productos.filter((p) => p.stock > 0)
   const total = lineas.reduce((s, l) => s + l.subtotal, 0)
   const unidades = lineas.reduce((s, l) => s + l.cantidad, 0)
 
@@ -302,9 +304,11 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
             <Aviso tipo="error">No pudimos cargar los productos: {errorCarga}</Aviso>
           ) : productos.length === 0 ? (
             <Card className="text-center text-sm text-muted">Aún no hay productos activos.</Card>
+          ) : disponibles.length === 0 ? (
+            <Card className="text-center text-sm text-muted">Se agotó todo. Si llegan más unidades, el admin las suma en Productos.</Card>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {productos.map((p) => {
+              {disponibles.map((p) => {
                 const enCarrito = carrito[p.id] ?? 0
                 const agotado = p.stock <= 0
                 const lleno = enCarrito >= p.stock

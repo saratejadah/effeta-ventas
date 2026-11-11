@@ -53,6 +53,8 @@ export default function PedidoPage() {
   }, [productos])
 
   const lineas = useMemo(() => lineasCarrito(carrito, productos), [productos, carrito])
+  // Lo agotado no se muestra
+  const disponibles = productos.filter((p) => p.stock > 0)
   const total = lineas.reduce((s, l) => s + l.subtotal, 0)
   const unidades = lineas.reduce((s, l) => s + l.cantidad, 0)
 
@@ -288,9 +290,14 @@ export default function PedidoPage() {
               <p className="text-[15px] font-semibold">Todavía no hay productos</p>
               <p className="mt-1 text-sm text-muted">Vuelve en un ratico, ya casi empezamos.</p>
             </Card>
+          ) : disponibles.length === 0 ? (
+            <Card className="text-center">
+              <p className="text-[15px] font-semibold">¡Se agotó todo!</p>
+              <p className="mt-1 text-sm text-muted">Gracias por apoyarnos. Si llegan más unidades, aparecerán aquí.</p>
+            </Card>
           ) : (
             <div className="grid gap-3 xl:grid-cols-2">
-              {productos.map((p) => (
+              {disponibles.map((p) => (
                 <TarjetaProducto key={p.id} producto={p} cantidad={carrito[p.id] ?? 0} onChange={(n) => cambiar(p, n)} />
               ))}
             </div>
