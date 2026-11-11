@@ -19,7 +19,7 @@ const estados: { id: Estado | 'todos'; texto: string }[] = [
 
 const canales: { id: Canal | 'todos'; texto: string }[] = [
   { id: 'todos', texto: 'Todos los canales' },
-  { id: 'online', texto: 'Online' },
+  { id: 'online', texto: 'A distancia' },
   { id: 'presencial', texto: 'En caja' },
 ]
 
@@ -117,8 +117,17 @@ export default function Pedidos({ jornadas, jornada, onElegir }: VistaJornada) {
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-semibold">{p.nombre_cliente}</span>
                       <span className="flex items-center gap-1 truncate text-[11px] text-muted">
-                        {p.canal === 'online' ? <Globe size={11} /> : <Store size={11} />}
-                        {p.canal === 'online' ? 'Online' : (p.perfiles?.nombre ?? 'Caja')} · {hora(p.created_at)}
+                        {p.canal === 'online' ? (
+                          <span className="inline-flex items-center gap-1 font-semibold text-[#7A3FB0]">
+                            <Globe size={11} strokeWidth={2.2} />A distancia
+                          </span>
+                        ) : (
+                          <>
+                            <Store size={11} />
+                            {p.perfiles?.nombre ?? 'Caja'}
+                          </>
+                        )}{' '}
+                        · {hora(p.created_at)}
                       </span>
                     </span>
                     <span className="flex flex-col items-end gap-1">

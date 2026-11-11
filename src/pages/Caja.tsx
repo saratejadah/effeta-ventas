@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, ClipboardList, PauseCircle, X, ImageOff, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react'
+import { CheckCircle2, ClipboardList, Globe, PauseCircle, X, ImageOff, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { useJornadas, usePedidos, useProductos } from '../lib/hooks'
@@ -36,7 +36,17 @@ const tabs: Tab<Pestana>[] = [
 export default function CajaPage() {
   const { perfil, salir } = useAuth()
   const [pestana, setPestana] = useState<Pestana>('vender')
+  const [filtro, setFiltro] = useState<Filtro>('por-cobrar')
   const { abierta, cargando, error } = useJornadas()
+  const pedidos = usePedidos(abierta ? abierta.id : cargando ? undefined : null)
+
+  // Pedidos del link que todavía no se han entregado (la persona no está en la caja: fácil olvidarlos)
+  const distancia = pedidos.pedidos.filter((p) => p.canal === 'online' && (p.estado === 'pendiente' || p.estado === 'pagado'))
+  function verDistancia() {
+    setFiltro(distancia.some((p) => p.estado === 'pagado') ? 'por-entregar' : 'por-cobrar')
+    setPestana('pedidos')
+    window.scrollTo({ top: 0 })
+  }
 
   return (
     <div className="min-h-dvh">
@@ -60,9 +70,9 @@ export default function CajaPage() {
           </Card>
         </Contenido>
       ) : pestana === 'vender' ? (
-        <Vender nombreCajero={perfil?.nombre} />
+        <Vender nombreCajero={perfil?.nombre} distancia={distancia.length} onVerDistancia={verDistancia} />
       ) : (
-        <PedidosOnline jornadaId={abierta.id} />
+        <PedidosOnline {...pedidos} filtro={filtro} onFiltro={setFiltro} />
       )}
       <BottomNav tabs={tabs} activo={pestana} onChange={setPestana} ancho />
     </div>
@@ -71,7 +81,7 @@ export default function CajaPage() {
 
 /* ================= Vender ================= */
 
-function Vender({ nombreCajero }: { nombreCajero?: string }) {
+function Vender({ nombreCajero, distancia, onVerDistancia }: { nombreCajero?: string; distancia: number; onVerDistancia: () => void }) {
   const { productos, cargando, error: errorCarga, recargar } = useProductos()
   const [carrito, setCarrito] = useState<Carrito>({})
   const [cliente, setCliente] = useState('')
@@ -283,6 +293,20 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
             </p>
           </div>
 
+          {distancia > 0 && (
+            <button
+              onClick={onVerDistancia}
+              className="flex w-full items-center gap-3 rounded-2xl border border-[#7A3FB0]/30 bg-[#F1E8FB] px-4 py-3 text-left text-[#7A3FB0]"
+            >
+              <Globe size={22} className="shrink-0" />
+              <span className="min-w-0 flex-1 text-sm font-semibold">
+                {distancia === 1 ? 'Hay 1 pedido a distancia por entregar' : `Hay ${distancia} pedidos a distancia por entregar`}
+                <span className="block font-medium">Sepáralos antes de venderlos en la caja.</span>
+              </span>
+              <span className="shrink-0 text-xs font-semibold underline">Ver</span>
+            </button>
+          )}
+
           {ultima && (
             <div className={`flex items-center gap-3 rounded-2xl px-4 py-3 ${ultima.pagado ? 'bg-ok-bg text-ok' : 'bg-warn-bg text-warn'}`}>
               <CheckCircle2 size={22} className="shrink-0" />
@@ -396,9 +420,14 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
 
 type Filtro = 'por-cobrar' | 'por-entregar'
 
-export function PedidosOnline({ jornadaId }: { jornadaId: string }) {
-  const { pedidos, cargando, error, recargar } = usePedidos(jornadaId)
-  const [filtro, setFiltro] = useState<Filtro>('por-cobrar')
+function PedidosOnline({
+  pedidos,
+  cargando,
+  error,
+  recargar,
+  filtro,
+  onFiltro: setFiltro,
+}: ReturnType<typeof usePedidos> & { filtro: Filtro; onFiltro: (f: Filtro) => void }) {
   const [busqueda, setBusqueda] = useState('')
 
   // Por cobrar: todo lo pendiente (online y en caja). Por entregar: online ya pagados.
