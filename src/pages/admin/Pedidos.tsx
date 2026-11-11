@@ -5,7 +5,7 @@ import { usePedidos } from '../../lib/hooks'
 import { hora, mensajeError, numeroPedido, precio } from '../../lib/format'
 import type { Canal, Estado, Pedido } from '../../lib/types'
 import { PedidoCard } from '../../components/PedidoCard'
-import { AccionesPago } from '../../components/AccionesPago'
+import { AccionesPago, debePago } from '../../components/AccionesPago'
 import { SelectorJornada, type VistaJornada } from '../../components/Jornadas'
 import { Aviso, BotonSecundario, Card, Cargando, Chip, Contenido, EstadoPill, TituloPagina } from '../../components/ui'
 
@@ -14,7 +14,7 @@ type FiltroEstado = Estado | 'todos' | 'sin-entregar'
 const estados: { id: FiltroEstado; texto: string }[] = [
   { id: 'todos', texto: 'Todos' },
   { id: 'sin-entregar', texto: 'Sin entregar' },
-  { id: 'pendiente', texto: 'Pendientes' },
+  { id: 'pendiente', texto: 'Por cobrar' },
   { id: 'pagado', texto: 'Pagados' },
   { id: 'entregado', texto: 'Entregados' },
   { id: 'cancelado', texto: 'Cancelados' },
@@ -37,7 +37,9 @@ export default function Pedidos({ jornadas, jornada, onElegir }: VistaJornada) {
   const sinEntregar = (p: Pedido) => p.estado === 'pendiente' || p.estado === 'pagado'
   const visibles = pedidos.filter(
     (p) =>
-      (estado === 'todos' || (estado === 'sin-entregar' ? sinEntregar(p) : p.estado === estado)) && (canal === 'todos' || p.canal === canal),
+      (estado === 'todos' ||
+        (estado === 'sin-entregar' ? sinEntregar(p) : estado === 'pendiente' ? debePago(p) : p.estado === estado)) &&
+      (canal === 'todos' || p.canal === canal),
   )
   // Pedidos del link que todavía no se han entregado (la persona no está en la caja: fácil olvidarlos)
   const distancia = pedidos.filter((p) => p.canal === 'online' && sinEntregar(p)).length
@@ -160,7 +162,7 @@ export default function Pedidos({ jornadas, jornada, onElegir }: VistaJornada) {
                     <span className="flex flex-col items-end gap-1">
                       <span className="text-sm font-bold tabular-nums">{precio(p.total)}</span>
                       <span className="flex items-center gap-1">
-                        <EstadoPill estado={p.estado} />
+                        <EstadoPill estado={p.estado} debe={p.pago_pendiente} />
                         <ChevronDown size={14} className={`text-muted transition ${open ? 'rotate-180' : ''}`} />
                       </span>
                     </span>

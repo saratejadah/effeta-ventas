@@ -3,6 +3,7 @@ import { Download, Globe, Store } from 'lucide-react'
 import { METODOS_PAGO, textoMetodo } from '../../lib/pago'
 import { usePedidos, useProductos } from '../../lib/hooks'
 import { descargarCSV } from '../../lib/csv'
+import { debePago } from '../../components/AccionesPago'
 import { nombreItem, numeroPedido, precio } from '../../lib/format'
 import { Aviso, BotonSecundario, Card, Cargando, Hero, IconBox, SectionLabel, StatCard } from '../../components/ui'
 import { AbrirJornada, CerrarJornada, SelectorJornada, fechaCorta, nombreSiguiente, type VistaJornada } from '../../components/Jornadas'
@@ -13,8 +14,8 @@ export default function Resumen({ nombre, jornadas, abierta, jornada, onElegir, 
 
   const datos = useMemo(() => {
     const validos = pedidos.filter((p) => p.estado !== 'cancelado')
-    const cobrados = validos.filter((p) => p.estado !== 'pendiente')
-    const porCobrar = validos.filter((p) => p.estado === 'pendiente')
+    const cobrados = validos.filter((p) => !debePago(p))
+    const porCobrar = validos.filter(debePago)
 
     // Ventas por cajero (las online se agrupan aparte)
     const porCajero = new Map<string, { nombre: string; online: boolean; pedidos: number; total: number }>()
@@ -95,7 +96,7 @@ export default function Resumen({ nombre, jornadas, abierta, jornada, onElegir, 
         p.telefono,
         p.canal,
         p.perfiles?.nombre ?? '',
-        p.estado,
+        p.estado === 'entregado' && p.pago_pendiente ? 'entregado (debe pago)' : p.estado,
         p.metodo_pago ? textoMetodo(p.metodo_pago) : '',
         p.total,
         (p.pedido_items ?? []).map((i) => `${i.cantidad}x ${nombreItem(i)}`).join(', '),

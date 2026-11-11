@@ -8,7 +8,7 @@ import { mensajeError, numeroPedido, precio } from '../lib/format'
 import { textoMetodo } from '../lib/pago'
 import type { Carrito, MetodoPago } from '../lib/types'
 import { PedidoCard } from '../components/PedidoCard'
-import { AccionesPago } from '../components/AccionesPago'
+import { AccionesPago, debePago } from '../components/AccionesPago'
 import { sugerencias } from '../components/Vueltas'
 import {
   Aviso,
@@ -408,8 +408,8 @@ function PedidosOnline({
 }: ReturnType<typeof usePedidos> & { filtro: Filtro; onFiltro: (f: Filtro) => void }) {
   const [busqueda, setBusqueda] = useState('')
 
-  // Por cobrar: todo lo pendiente (online y en caja). Por entregar: online ya pagados.
-  const porCobrar = pedidos.filter((p) => p.estado === 'pendiente')
+  // Por cobrar: todo lo que no se ha pagado (también lo entregado que debe el pago). Por entregar: online ya pagados.
+  const porCobrar = pedidos.filter(debePago)
   const porEntregar = pedidos.filter((p) => p.estado === 'pagado' && p.canal === 'online')
   const conteo = { 'por-cobrar': porCobrar.length, 'por-entregar': porEntregar.length }
 

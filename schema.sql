@@ -495,3 +495,13 @@ begin
     alter publication supabase_realtime add table public.jornadas;
   end if;
 end $$;
+
+
+-- =========================================================
+-- ENTREGADO SIN PAGO (igual que supabase/migraciones/004_entregado_sin_pago.sql)
+-- =========================================================
+alter table public.pedidos add column if not exists pago_pendiente boolean not null default false;
+
+alter table public.pedidos drop constraint if exists pedidos_pago_pendiente_check;
+alter table public.pedidos
+  add constraint pedidos_pago_pendiente_check check (not pago_pendiente or estado = 'entregado');
