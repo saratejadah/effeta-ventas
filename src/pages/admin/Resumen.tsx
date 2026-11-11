@@ -20,7 +20,7 @@ export default function Resumen({ nombre, jornadas, abierta, jornada, onElegir, 
     const porCajero = new Map<string, { nombre: string; online: boolean; pedidos: number; total: number }>()
     for (const p of cobrados) {
       const clave = p.canal === 'online' ? 'online' : (p.cajero_id ?? 'sin')
-      const nombre = p.canal === 'online' ? 'Pedidos online' : (p.perfiles?.nombre ?? 'Sin cajero')
+      const nombre = p.canal === 'online' ? 'Pedidos a distancia' : (p.perfiles?.nombre ?? 'Sin cajero')
       const fila = porCajero.get(clave) ?? { nombre, online: p.canal === 'online', pedidos: 0, total: 0 }
       fila.pedidos += 1
       fila.total += p.total

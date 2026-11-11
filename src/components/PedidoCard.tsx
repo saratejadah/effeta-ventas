@@ -1,29 +1,34 @@
 import type { ReactNode } from 'react'
-import { Globe, Store } from 'lucide-react'
+import { Store } from 'lucide-react'
 import { hora, nombreItem, numeroPedido, precio } from '../lib/format'
 import { textoMetodo } from '../lib/pago'
 import type { Pedido } from '../lib/types'
-import { EstadoPill } from './ui'
+import { DistanciaPill, EstadoPill } from './ui'
 
 /** Tarjeta de un pedido con su detalle. `acciones` se pinta abajo (botones). */
 export function PedidoCard({ pedido: p, acciones, mostrarCajero }: { pedido: Pedido; acciones?: ReactNode; mostrarCajero?: boolean }) {
   return (
-    <div className="rounded-2xl border border-line bg-white p-4">
+    <div className={`rounded-2xl border border-line bg-white p-4 ${p.canal === 'online' ? 'border-l-4 border-l-[#7A3FB0]' : ''}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-serif text-2xl font-bold leading-none text-primary">{numeroPedido(p.numero)}</p>
           <p className="mt-1.5 truncate text-[15px] font-semibold">{p.nombre_cliente}</p>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12px] text-muted">
-            <span className="inline-flex items-center gap-1">
-              {p.canal === 'online' ? <Globe size={12} /> : <Store size={12} />}
-              {p.canal === 'online' ? 'Online' : 'En caja'}
-            </span>
-            <span>· {hora(p.created_at)}</span>
+            {p.canal === 'presencial' && (
+              <span className="inline-flex items-center gap-1">
+                <Store size={12} />
+                En caja ·
+              </span>
+            )}
+            <span>{hora(p.created_at)}</span>
             {p.telefono && <span>· {p.telefono}</span>}
             {mostrarCajero && p.perfiles?.nombre && <span>· {p.perfiles.nombre}</span>}
           </p>
         </div>
-        <EstadoPill estado={p.estado} />
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <EstadoPill estado={p.estado} />
+          {p.canal === 'online' && <DistanciaPill />}
+        </div>
       </div>
 
       {p.pedido_items && p.pedido_items.length > 0 && (

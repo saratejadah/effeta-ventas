@@ -1,5 +1,5 @@
 import { useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react'
-import { Check, Copy, LogOut, Minus, Plus, type LucideIcon } from 'lucide-react'
+import { Check, Copy, Globe, LogOut, Minus, Plus, type LucideIcon } from 'lucide-react'
 import type { Estado, MetodoPago } from '../lib/types'
 import { METODOS_PAGO, NUMERO_TRANSFERENCIA } from '../lib/pago'
 
@@ -121,6 +121,7 @@ const pillColor = {
   ambar: 'bg-warn-bg text-warn',
   gris: 'bg-[#EEF0F4] text-muted',
   indigo: 'bg-[#E8EAFB] text-primary',
+  morado: 'bg-[#F1E8FB] text-[#7A3FB0]',
 }
 
 export function Pill({ children, color }: { children: ReactNode; color: keyof typeof pillColor }) {
@@ -141,6 +142,15 @@ const estadoInfo: Record<Estado, { texto: string; color: keyof typeof pillColor 
 export function EstadoPill({ estado }: { estado: Estado }) {
   const e = estadoInfo[estado]
   return <Pill color={e.color}>{e.texto}</Pill>
+}
+
+/** Etiqueta para los pedidos que llegan por el link (la persona no está en la caja) */
+export function DistanciaPill() {
+  return (
+    <Pill color="morado">
+      <Globe size={12} strokeWidth={2.2} className="mr-1" />A distancia
+    </Pill>
+  )
 }
 
 export function StockPill({ stock }: { stock: number }) {
