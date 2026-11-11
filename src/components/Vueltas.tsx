@@ -4,7 +4,7 @@ import { precio } from '../lib/format'
 const BILLETES = [2000, 5000, 10000, 20000, 50000, 100000]
 
 /** Montos con los que probablemente pague: el total redondeado hacia arriba a cada billete */
-function sugerencias(total: number): number[] {
+export function sugerencias(total: number): number[] {
   const montos = new Set<number>()
   for (const b of BILLETES) {
     const m = Math.ceil(total / b) * b
