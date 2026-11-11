@@ -9,8 +9,11 @@ import { AccionesPago } from '../../components/AccionesPago'
 import { SelectorJornada, type VistaJornada } from '../../components/Jornadas'
 import { Aviso, BotonSecundario, Card, Cargando, Chip, Contenido, EstadoPill, TituloPagina } from '../../components/ui'
 
-const estados: { id: Estado | 'todos'; texto: string }[] = [
+type FiltroEstado = Estado | 'todos' | 'sin-entregar'
+
+const estados: { id: FiltroEstado; texto: string }[] = [
   { id: 'todos', texto: 'Todos' },
+  { id: 'sin-entregar', texto: 'Sin entregar' },
   { id: 'pendiente', texto: 'Pendientes' },
   { id: 'pagado', texto: 'Pagados' },
   { id: 'entregado', texto: 'Entregados' },
@@ -25,13 +28,20 @@ const canales: { id: Canal | 'todos'; texto: string }[] = [
 
 export default function Pedidos({ jornadas, jornada, onElegir }: VistaJornada) {
   const { pedidos, cargando, error, recargar } = usePedidos(jornada.id)
-  const [estado, setEstado] = useState<Estado | 'todos'>('todos')
+  const [estado, setEstado] = useState<FiltroEstado>('todos')
   const [canal, setCanal] = useState<Canal | 'todos'>('todos')
   const [abierto, setAbierto] = useState<string | null>(null)
   const [cancelando, setCancelando] = useState<string | null>(null)
   const [errorAccion, setErrorAccion] = useState<string | null>(null)
 
-  const visibles = pedidos.filter((p) => (estado === 'todos' || p.estado === estado) && (canal === 'todos' || p.canal === canal))
+  const sinEntregar = (p: Pedido) => p.estado === 'pendiente' || p.estado === 'pagado'
+  const visibles = pedidos.filter(
+    (p) =>
+      (estado === 'todos' || (estado === 'sin-entregar' ? sinEntregar(p) : p.estado === estado)) && (canal === 'todos' || p.canal === canal),
+  )
+  // Pedidos del link que todavía no se han entregado (la persona no está en la caja: fácil olvidarlos)
+  const distancia = pedidos.filter((p) => p.canal === 'online' && sinEntregar(p)).length
+  const viendoDistancia = estado === 'sin-entregar' && canal === 'online'
 
   async function cancelar(p: Pedido) {
     const unidades = jornada.abierta
@@ -73,6 +83,23 @@ export default function Pedidos({ jornadas, jornada, onElegir }: VistaJornada) {
       </div>
 
       <SelectorJornada jornadas={jornadas} actual={jornada} onElegir={onElegir} />
+
+      {distancia > 0 && !viendoDistancia && (
+        <button
+          onClick={() => {
+            setEstado('sin-entregar')
+            setCanal('online')
+          }}
+          className="flex w-full items-center gap-3 rounded-2xl border border-[#7A3FB0]/30 bg-[#F1E8FB] px-4 py-3 text-left text-[#7A3FB0]"
+        >
+          <Globe size={22} className="shrink-0" />
+          <span className="min-w-0 flex-1 text-sm font-semibold">
+            {distancia === 1 ? 'Hay 1 pedido a distancia sin entregar' : `Hay ${distancia} pedidos a distancia sin entregar`}
+            <span className="block font-medium">Asegúrate de separarlos para que no se vendan en la caja.</span>
+          </span>
+          <span className="shrink-0 text-xs font-semibold underline">Ver</span>
+        </button>
+      )}
 
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
         {estados.map((e) => (
