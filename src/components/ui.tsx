@@ -9,10 +9,10 @@ function cx(...c: (string | false | null | undefined)[]) {
 
 /* ---------- Header ---------- */
 
-export function Header({ nombre, onSalir }: { nombre?: string; onSalir?: () => void }) {
+export function Header({ nombre, onSalir, ancho }: { nombre?: string; onSalir?: () => void; ancho?: boolean }) {
   return (
     <header className="sticky top-0 z-30 bg-primary text-white">
-      <div className="mx-auto flex h-14 max-w-[600px] items-center justify-between px-4">
+      <div className={cx('mx-auto flex h-14 max-w-[600px] items-center justify-between px-4', ancho && 'lg:max-w-[1120px]')}>
         <span className="font-serif text-lg font-semibold tracking-[0.3em]">EFFETÁ</span>
         {onSalir && (
           <div className="flex items-center gap-3">
@@ -289,14 +289,17 @@ export function BottomNav<T extends string>({
   tabs,
   activo,
   onChange,
+  ancho,
 }: {
   tabs: Tab<T>[]
   activo: T
   onChange: (t: T) => void
+  /** En computador usa el mismo ancho que la caja */
+  ancho?: boolean
 }) {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white pb-[env(safe-area-inset-bottom)]">
-      <div className="mx-auto flex max-w-[600px]">
+      <div className={cx('mx-auto flex max-w-[600px]', ancho && 'lg:max-w-[1120px]')}>
         {tabs.map((t) => {
           const on = t.id === activo
           return (

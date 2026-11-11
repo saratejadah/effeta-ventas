@@ -88,7 +88,7 @@ Reglas clave que la app debe respetar:
 ### 3. `/caja` — Punto de venta del cajero
 - Cuadrícula de productos con botones grandes; tocar un producto suma 1.
 - Carrito con +/−, total y campo de nombre del cliente (se llena con "Venta en caja" si se deja vacío).
-- Pago en efectivo: calculadora de vueltas en la barra fija de abajo al registrar la venta ("Paga con", botones rápidos con billetes, y "Vueltas"/"Falta" junto al total), y dentro de la tarjeta al cobrar un pedido pendiente. No se guarda, solo ayuda a la caja.
+- Cobro: en computador, panel lateral fijo con cantidades, cliente, si pagó, método, "Paga con" (botones rápidos con billetes) y "Vueltas"/"Falta" junto al total. En celular, barra corta abajo ("N productos · total · Cobrar") que abre ese mismo panel. Al cobrar un pedido pendiente, la calculadora de vueltas va dentro de la tarjeta del pedido. No se guarda, solo ayuda a la caja.
 - Botón "Registrar venta" que llama a `crear_pedido`. Queda como presencial y pagado.
 - Pestaña **Pedidos online**: los pendientes en tiempo real, con buscador por número o nombre y botones "Marcar pagado" y "Entregado".
 
