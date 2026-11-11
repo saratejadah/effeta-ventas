@@ -32,12 +32,12 @@ export function Header({ nombre, onSalir, ancho }: { nombre?: string; onSalir?: 
 
 /* ---------- Hero ---------- */
 
-export function Hero({ etiqueta, titulo, subtitulo }: { etiqueta: string; titulo: string; subtitulo?: string }) {
+export function Hero({ etiqueta, titulo, subtitulo, ancho }: { etiqueta: string; titulo: string; subtitulo?: string; ancho?: boolean }) {
   return (
     <section className="relative overflow-hidden bg-primary text-white">
       <div className="pointer-events-none absolute -right-16 -top-10 h-56 w-56 rounded-full bg-white/10" />
       <div className="pointer-events-none absolute -right-4 top-24 h-24 w-24 rounded-full bg-white/5" />
-      <div className="relative mx-auto max-w-[600px] px-4 pb-16 pt-7">
+      <div className={cx('relative mx-auto max-w-[600px] px-4 pb-16 pt-7', ancho && 'lg:max-w-[1120px]')}>
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">{etiqueta}</p>
         <h1 className="mt-2 font-serif text-[32px] font-bold leading-tight">{titulo}</h1>
         {subtitulo && <p className="mt-2 max-w-[420px] text-[15px] text-white/80">{subtitulo}</p>}

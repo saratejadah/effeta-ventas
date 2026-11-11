@@ -48,7 +48,7 @@ Debe verse como parte del mismo producto que la app de servidores de Effetá Maz
 - **Tono de los textos:** cercano y cálido, en segunda persona ("Hola, Sara", "Sigue adelante", "Cuéntanos tu idea").
 
 ### Cómo aplicarlo en esta app
-- **`/pedido` (compradores):** hero azul con "EFFETÁ MAZUREN", título "Jornada de ventas" y una frase cálida. Productos como tarjetas con foto, precio y pill de stock ("Quedan 5" en verde, "Últimas 2" en ámbar, "Agotado" en gris). Botón principal fijo abajo con el total.
+- **`/pedido` (compradores):** hero azul con "EFFETÁ MAZUREN", título "Jornada de ventas" y una frase cálida. Productos como tarjetas con foto, precio y pill de stock ("Quedan 5" en verde, "Últimas 2" en ámbar, "Agotado" en gris). "Tu pedido" (cantidades, total, nombre, teléfono, método de pago y "Hacer pedido"): en computador es un panel fijo a la derecha; en celular, una barra corta abajo ("N productos · total · Ver mi pedido") que abre ese mismo panel.
 - **Confirmación del pedido:** tarjeta destacada (borde izquierdo azul) con el número de pedido muy grande.
 - **`/caja`:** navegación inferior con "Vender" y "Pedidos".
 - **`/admin`:** navegación inferior con "Resumen", "Productos", "Pedidos" y "Cajeros". El resumen usa las tarjetas de estadística (total vendido, pedidos, productos agotados).
