@@ -83,11 +83,12 @@ Reglas clave que la app debe respetar:
 - Stock en tiempo real (suscripción a `productos`).
 
 ### 2. `/login`
-- Email + contraseña (Supabase Auth). Redirige a `/admin` o `/caja` según el rol.
+- Usuario o correo + contraseña (Supabase Auth; los cajeros pueden tener solo usuario, ej. `caja1`). Redirige a `/admin` o `/caja` según el rol.
 
 ### 3. `/caja` — Punto de venta del cajero
 - Cuadrícula de productos con botones grandes; tocar un producto suma 1.
 - Carrito con +/−, total y campo de nombre del cliente (se llena con "Venta en caja" si se deja vacío).
+- Pago en efectivo: calculadora de vueltas ("¿Con cuánto paga?", botones rápidos con billetes) al registrar la venta y al cobrar un pedido pendiente. No se guarda, solo ayuda a la caja.
 - Botón "Registrar venta" que llama a `crear_pedido`. Queda como presencial y pagado.
 - Pestaña **Pedidos online**: los pendientes en tiempo real, con buscador por número o nombre y botones "Marcar pagado" y "Entregado".
 

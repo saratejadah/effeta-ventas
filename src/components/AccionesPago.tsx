@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { mensajeError } from '../lib/format'
 import type { Estado, MetodoPago, Pedido } from '../lib/types'
 import { Aviso, BotonPrincipal, BotonSecundario, SelectorMetodoPago } from './ui'
+import { CalculadoraVueltas } from './Vueltas'
 
 /**
  * Botones para cobrar un pedido: al marcarlo pagado se elige con qué se pagó
@@ -33,6 +34,7 @@ export function AccionesPago({ pedido: p, onHecho }: { pedido: Pedido; onHecho: 
       <div className="w-full space-y-3">
         <p className="text-sm font-semibold">¿Con qué pagó?</p>
         <SelectorMetodoPago valor={metodo} onChange={setMetodo} />
+        {metodo === 'efectivo' && <CalculadoraVueltas total={p.total} />}
         <div className="flex gap-2">
           <BotonPrincipal
             className="py-2.5 text-sm"

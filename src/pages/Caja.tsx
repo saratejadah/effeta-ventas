@@ -9,6 +9,7 @@ import { textoMetodo } from '../lib/pago'
 import type { Carrito, MetodoPago } from '../lib/types'
 import { PedidoCard } from '../components/PedidoCard'
 import { AccionesPago } from '../components/AccionesPago'
+import { CalculadoraVueltas } from '../components/Vueltas'
 import {
   Aviso,
   BotonPrincipal,
@@ -80,6 +81,7 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [ultima, setUltima] = useState<{ numero: number; total: number; pagado: boolean; metodo: MetodoPago | null } | null>(null)
+  const [ventas, setVentas] = useState(0) // para limpiar la calculadora de vueltas en cada venta nueva
 
   useEffect(() => {
     setCarrito((c) => ajustarCarrito(c, productos))
@@ -123,6 +125,7 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
     setCliente('')
     setMetodo(null)
     setPagado(null)
+    setVentas((n) => n + 1)
   }
 
   const primerNombre = nombreCajero?.split(' ')[0]
@@ -263,6 +266,7 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
           <SectionLabel>{pagado === false ? 'Método de pago (opcional)' : 'Método de pago'}</SectionLabel>
           <SelectorMetodoPago valor={metodo} onChange={setMetodo} />
           {metodo === 'transferencia' && <DatosTransferencia />}
+          {metodo === 'efectivo' && pagado !== false && <CalculadoraVueltas key={ventas} total={total} />}
         </div>
         {error && <Aviso tipo="error">{error}</Aviso>}
       </Card>
