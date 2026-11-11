@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, ImageOff, PauseCircle, ShoppingBag, X } from 'lucide-react'
+import { CheckCircle2, PauseCircle, ShoppingBag, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useJornadas, useProductos } from '../lib/hooks'
+import { TarjetaProducto } from '../components/TarjetaProducto'
 import { ajustarCarrito, fijarCantidad, lineasCarrito } from '../lib/carrito'
 import { mensajeError, numeroPedido, precio } from '../lib/format'
 import { textoMetodo } from '../lib/pago'
@@ -19,7 +20,6 @@ import {
   SectionLabel,
   SelectorMetodoPago,
   Stepper,
-  StockPill,
 } from '../components/ui'
 
 type Paso = 'elegir' | 'listo'
@@ -354,34 +354,6 @@ export default function PedidoPage() {
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-function TarjetaProducto({ producto: p, cantidad, onChange }: { producto: Producto; cantidad: number; onChange: (n: number) => void }) {
-  const agotado = p.stock <= 0
-  return (
-    <div className={`flex gap-4 rounded-2xl border border-line bg-white p-3 ${agotado ? 'opacity-60' : ''}`}>
-      <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-page">
-        {p.imagen_url ? (
-          <img src={p.imagen_url} alt={p.nombre} className={`h-full w-full object-cover ${agotado ? 'grayscale' : ''}`} loading="lazy" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-muted/50">
-            <ImageOff size={24} strokeWidth={1.5} />
-          </div>
-        )}
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-[15px] font-semibold leading-snug">{p.nombre}</p>
-          <StockPill stock={p.stock} />
-        </div>
-        {p.descripcion && <p className="mt-0.5 line-clamp-2 text-[13px] text-muted">{p.descripcion}</p>}
-        <div className="mt-auto flex items-center justify-between pt-2">
-          <p className="text-[17px] font-bold text-ink tabular-nums">{precio(p.precio)}</p>
-          <Stepper valor={cantidad} max={p.stock} onChange={onChange} disabled={agotado} />
-        </div>
-      </div>
     </div>
   )
 }

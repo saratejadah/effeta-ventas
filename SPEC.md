@@ -87,7 +87,7 @@ Reglas clave que la app debe respetar:
 - Usuario o correo + contraseña (Supabase Auth; los cajeros pueden tener solo usuario, ej. `caja1`). Redirige a `/admin` o `/caja` según el rol.
 
 ### 3. `/caja` — Punto de venta del cajero
-- Cuadrícula de productos con botones grandes; tocar un producto suma 1.
+- Productos como tarjetas con foto, precio, "Quedan X" (descontando lo que ya está en la venta) y botones − / + (misma tarjeta que el link de pedidos).
 - Carrito con +/−, total y campo de nombre del cliente (se llena con "Venta en caja" si se deja vacío).
 - Pedidos del link ("A distancia"): etiqueta morada y borde morado en sus tarjetas (caja y admin). En Admin > Pedidos, aviso "Hay N pedidos a distancia sin entregar" (online pendientes o pagados) que aplica los filtros "Sin entregar" + "A distancia".
 - Cobro: en computador, panel lateral fijo con cantidades, cliente, si pagó, método, "Paga con" (botones rápidos con billetes) y "Vueltas"/"Falta" junto al total. En celular, barra corta abajo ("N productos · total · Cobrar") que abre ese mismo panel. Al cobrar un pedido pendiente, la calculadora de vueltas va dentro de la tarjeta del pedido. No se guarda, solo ayuda a la caja.
