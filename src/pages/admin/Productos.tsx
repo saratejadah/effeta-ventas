@@ -85,7 +85,7 @@ export default function Productos() {
               {filtro === 'activos' ? 'No hay productos activos.' : 'No hay productos inactivos.'}
             </Card>
           ) : (
-            visibles.map((p) => <FilaProducto key={p.id} producto={p} onEditar={() => setEditando(p)} />)
+            visibles.map((p) => <FilaProducto key={p.id} producto={p} onEditar={() => setEditando(p)} onEliminado={recargar} />)
           )}
         </>
       )}
@@ -93,11 +93,21 @@ export default function Productos() {
   )
 }
 
-function FilaProducto({ producto: p, onEditar }: { producto: Producto; onEditar: () => void }) {
+function FilaProducto({ producto: p, onEditar, onEliminado }: { producto: Producto; onEditar: () => void; onEliminado: () => void }) {
   // Al abrir el ajuste guardamos el stock de ese momento (base) y la cantidad que se quiere dejar (nuevo)
   const [ajuste, setAjuste] = useState<{ base: number; nuevo: string } | null>(null)
   const [ocupado, setOcupado] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  async function eliminar() {
+    if (!confirmarEliminar(p)) return
+    setOcupado(true)
+    setError(null)
+    const err = await eliminarProducto(p)
+    setOcupado(false)
+    if (err) setError(err)
+    else onEliminado()
+  }
 
   async function toggleActivo() {
     setOcupado(true)
@@ -204,7 +214,7 @@ function FilaProducto({ producto: p, onEditar }: { producto: Producto; onEditar:
           </div>
         </form>
       ) : (
-        <div className="mt-3 grid grid-cols-3 gap-2">
+        <div className="mt-3 grid grid-cols-[repeat(3,minmax(0,1fr))_auto] gap-1.5">
           <BotonSecundario className="px-2" icon={PackagePlus} onClick={abrirAjuste}>
             Stock
           </BotonSecundario>
@@ -213,6 +223,9 @@ function FilaProducto({ producto: p, onEditar }: { producto: Producto; onEditar:
           </BotonSecundario>
           <BotonSecundario className="px-2" disabled={ocupado} onClick={toggleActivo}>
             {p.activo ? 'Desactivar' : 'Activar'}
+          </BotonSecundario>
+          <BotonSecundario className="px-3 text-danger" disabled={ocupado} onClick={eliminar} aria-label={`Eliminar ${p.nombre}`}>
+            <Trash2 size={17} strokeWidth={1.8} />
           </BotonSecundario>
         </div>
       )}
@@ -223,6 +236,22 @@ function FilaProducto({ producto: p, onEditar }: { producto: Producto; onEditar:
       )}
     </div>
   )
+}
+
+function confirmarEliminar(p: Producto): boolean {
+  return window.confirm(
+    `¿Eliminar "${p.nombre}" para siempre? Deja de aparecer en la caja y en el link de pedidos. Las ventas que ya tuvo se conservan en los registros. No se puede deshacer.`,
+  )
+}
+
+/** Elimina el producto y su foto. Devuelve un mensaje de error o null. */
+async function eliminarProducto(p: Producto): Promise<string | null> {
+  const { error } = await supabase.from('productos').delete().eq('id', p.id)
+  if (error) return mensajeError(error)
+  // Borrar también su foto (si falla no pasa nada, el producto ya se eliminó)
+  const ruta = p.imagen_url?.split('/productos/')[1]
+  if (ruta) await supabase.storage.from('productos').remove([decodeURIComponent(ruta)])
+  return null
 }
 
 /**
@@ -267,24 +296,15 @@ function FormularioProducto({ producto, onCerrar }: { producto: Producto | null;
   }
 
   async function eliminar() {
-    if (!producto) return
-    if (
-      !window.confirm(
-        `¿Eliminar "${producto.nombre}" para siempre? Deja de aparecer en la caja y en el link de pedidos. Las ventas que ya tuvo se conservan en los registros. No se puede deshacer.`,
-      )
-    )
-      return
+    if (!producto || !confirmarEliminar(producto)) return
     setGuardando(true)
     setError(null)
-    const { error } = await supabase.from('productos').delete().eq('id', producto.id)
-    if (error) {
-      setError(mensajeError(error))
+    const err = await eliminarProducto(producto)
+    if (err) {
+      setError(err)
       setGuardando(false)
       return
     }
-    // Borrar también su foto (si falla no pasa nada, el producto ya se eliminó)
-    const ruta = producto.imagen_url?.split('/productos/')[1]
-    if (ruta) await supabase.storage.from('productos').remove([decodeURIComponent(ruta)])
     onCerrar()
   }
 

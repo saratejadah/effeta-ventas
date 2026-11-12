@@ -173,7 +173,7 @@ export function BotonPrincipal({ className, children, icon: Icon, ...props }: Bt
         className,
       )}
     >
-      {Icon && <Icon size={18} strokeWidth={2} />}
+      {Icon && <Icon size={18} strokeWidth={2} className="shrink-0" />}
       {children}
     </button>
   )
@@ -190,7 +190,7 @@ export function BotonSecundario({ className, children, icon: Icon, ...props }: B
         className,
       )}
     >
-      {Icon && <Icon size={17} strokeWidth={1.8} />}
+      {Icon && <Icon size={17} strokeWidth={1.8} className="shrink-0" />}
       {children}
     </button>
   )
