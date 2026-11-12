@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CheckCircle2, Clock, PauseCircle, ShoppingBag, X } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabasePublico } from '../lib/supabase'
 import { useJornadas, useProductos } from '../lib/hooks'
 import { TarjetaProducto } from '../components/TarjetaProducto'
 import { MINUTOS_GRACIA, horariosRecogida, limiteRecogida, textoHora, useAhora } from '../lib/recogida'
@@ -88,7 +88,7 @@ export default function PedidoPage() {
     }
     setEnviando(true)
     setError(null)
-    const { data, error } = await supabase.rpc('crear_pedido', {
+    const { data, error } = await supabasePublico.rpc('crear_pedido', {
       p_nombre: nombre.trim(),
       p_telefono: telefono.trim() || null,
       p_items: lineas.map((l) => ({ producto_id: l.producto.id, cantidad: l.cantidad })),
