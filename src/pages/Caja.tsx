@@ -277,30 +277,32 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
 
   return (
     <main className="relative mx-auto w-full max-w-[600px] px-4 pb-44 pt-5 lg:max-w-[1120px] lg:pb-28">
+      <div className="mb-4 space-y-4">
+        <div>
+          <TituloPagina>Vender</TituloPagina>
+          <p className="mt-1 text-sm text-muted">
+            {primerNombre ? `Hola, ${primerNombre}. ` : ''}Usa + y − para armar la venta.
+          </p>
+        </div>
+  
+        {ultima && (
+          <div className={`flex items-center gap-3 rounded-2xl px-4 py-3 ${ultima.pagado ? 'bg-ok-bg text-ok' : 'bg-warn-bg text-warn'}`}>
+            <CheckCircle2 size={22} className="shrink-0" />
+            <p className="text-sm font-semibold">
+              Venta {numeroPedido(ultima.numero)} registrada · {precio(ultima.total)}
+              <span className="block font-medium">
+                {ultima.pagado ? `Pagada con ${textoMetodo(ultima.metodo)}` : 'Queda pendiente de pago (en la pestaña Pedidos)'}
+              </span>
+            </p>
+            <button onClick={() => setUltima(null)} className="ml-auto text-xs font-semibold underline">
+              Ok
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-6">
         <div className="space-y-4">
-          <div>
-            <TituloPagina>Vender</TituloPagina>
-            <p className="mt-1 text-sm text-muted">
-              {primerNombre ? `Hola, ${primerNombre}. ` : ''}Usa + y − para armar la venta.
-            </p>
-          </div>
-
-          {ultima && (
-            <div className={`flex items-center gap-3 rounded-2xl px-4 py-3 ${ultima.pagado ? 'bg-ok-bg text-ok' : 'bg-warn-bg text-warn'}`}>
-              <CheckCircle2 size={22} className="shrink-0" />
-              <p className="text-sm font-semibold">
-                Venta {numeroPedido(ultima.numero)} registrada · {precio(ultima.total)}
-                <span className="block font-medium">
-                  {ultima.pagado ? `Pagada con ${textoMetodo(ultima.metodo)}` : 'Queda pendiente de pago (en la pestaña Pedidos)'}
-                </span>
-              </p>
-              <button onClick={() => setUltima(null)} className="ml-auto text-xs font-semibold underline">
-                Ok
-              </button>
-            </div>
-          )}
-
           {cargando ? (
             <Cargando />
           ) : errorCarga ? (
