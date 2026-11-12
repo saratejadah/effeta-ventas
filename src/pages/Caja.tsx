@@ -375,7 +375,7 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
 
 /* ================= Pedidos ================= */
 
-type Filtro = 'para-recoger' | 'por-cobrar' | 'por-entregar'
+type Filtro = 'para-recoger' | 'por-cobrar'
 
 function PedidosOnline({
   pedidos,
@@ -392,14 +392,13 @@ function PedidosOnline({
   const [errorAccion, setErrorAccion] = useState<string | null>(null)
 
   // Para recoger: pedidos del link sin entregar, por hora de recogida.
-  // Por cobrar: todo lo que no se ha pagado (también lo entregado que debe el pago). Por entregar: online ya pagados.
+  // Por cobrar: todo lo que no se ha pagado (también lo entregado que debe el pago).
   const paraRecoger = pedidos.filter((p) => p.canal === 'online' && (p.estado === 'pendiente' || p.estado === 'pagado'))
   const porCobrar = pedidos.filter(debePago)
-  const porEntregar = pedidos.filter((p) => p.estado === 'pagado' && p.canal === 'online')
-  const conteo = { 'para-recoger': paraRecoger.length, 'por-cobrar': porCobrar.length, 'por-entregar': porEntregar.length }
+  const conteo = { 'para-recoger': paraRecoger.length, 'por-cobrar': porCobrar.length }
 
   const q = busqueda.trim().toLowerCase().replace(/^#/, '')
-  const lista = filtro === 'para-recoger' ? paraRecoger : filtro === 'por-cobrar' ? porCobrar : porEntregar
+  const lista = filtro === 'para-recoger' ? paraRecoger : porCobrar
   const momento = (p: Pedido) => (p.hora_recogida ? new Date(p.hora_recogida).getTime() : Infinity)
   const visibles = lista
     .filter((p) => !q || String(p.numero) === String(Number(q)) || p.nombre_cliente.toLowerCase().includes(q))
@@ -437,12 +436,11 @@ function PedidosOnline({
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-1 rounded-xl bg-white p-1 ring-1 ring-line">
+      <div className="grid grid-cols-2 gap-1 rounded-xl bg-white p-1 ring-1 ring-line">
         {(
           [
             ['para-recoger', 'Para recoger'],
             ['por-cobrar', 'Por cobrar'],
-            ['por-entregar', 'Por entregar'],
           ] as const
         ).map(([id, texto]) => (
           <button
@@ -469,9 +467,7 @@ function PedidosOnline({
               ? 'Revisa el número o el nombre.'
               : filtro === 'para-recoger'
                 ? 'No hay pedidos a distancia por recoger.'
-                : filtro === 'por-cobrar'
-                  ? 'No hay pedidos por cobrar.'
-                  : 'No hay pedidos por entregar.'}
+                : 'No hay pedidos por cobrar.'}
           </p>
         </Card>
       ) : (
