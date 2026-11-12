@@ -68,6 +68,7 @@ Ya definida en `schema.sql` (correrlo en el SQL Editor de Supabase antes de empe
 
 Reglas clave que la app debe respetar:
 - **Nunca** insertar pedidos directo en las tablas. Siempre usar `supabase.rpc('crear_pedido', { p_nombre, p_telefono, p_items })`. Esa función descuenta el stock de forma atómica y falla si no hay suficiente.
+- Entregar sin pagar: `pedidos.pago_pendiente = true` con estado `entregado` ("Entregado · debe pago"). Cuenta como por cobrar en la caja, en Pedidos y en el Resumen hasta que se marque pagado.
 - Cancelar con `supabase.rpc('cancelar_pedido', { p_pedido_id })`, que devuelve el stock (solo si el pedido es de la jornada abierta).
 - **Jornadas:** cada pedido pertenece a una jornada (`pedidos.jornada_id`) y su número empieza en #1 en cada jornada. Solo hay una abierta a la vez; `crear_pedido` vende en ella y falla si no hay ninguna (la caja y el link quedan en pausa). El admin cierra con `cerrar_jornada()` (el stock de todos los productos vuelve a 0) y abre otra con `abrir_jornada(p_nombre)`. Resumen y Pedidos del admin permiten ver jornadas anteriores.
 - El número de pedido es `pedidos.numero`; mostrarlo como `#0001`.
@@ -86,7 +87,7 @@ Reglas clave que la app debe respetar:
 - Usuario o correo + contraseña (Supabase Auth; los cajeros pueden tener solo usuario, ej. `caja1`). Redirige a `/admin` o `/caja` según el rol.
 
 ### 3. `/caja` — Punto de venta del cajero
-- Cuadrícula de productos con botones grandes; tocar un producto suma 1.
+- Productos como tarjetas con foto, precio, "Quedan X" (descontando lo que ya está en la venta) y botones − / + (misma tarjeta que el link de pedidos).
 - Carrito con +/−, total y campo de nombre del cliente (se llena con "Venta en caja" si se deja vacío).
 - Pedidos del link ("A distancia"): etiqueta morada y borde morado en sus tarjetas (caja y admin). En Admin > Pedidos, aviso "Hay N pedidos a distancia sin entregar" (online pendientes o pagados) que aplica los filtros "Sin entregar" + "A distancia".
 - Cobro: en computador, panel lateral fijo con cantidades, cliente, si pagó, método, "Paga con" (botones rápidos con billetes) y "Vueltas"/"Falta" junto al total. En celular, barra corta abajo ("N productos · total · Cobrar") que abre ese mismo panel. Al cobrar un pedido pendiente, la calculadora de vueltas va dentro de la tarjeta del pedido. No se guarda, solo ayuda a la caja.

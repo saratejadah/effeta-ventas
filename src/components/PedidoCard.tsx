@@ -26,7 +26,7 @@ export function PedidoCard({ pedido: p, acciones, mostrarCajero }: { pedido: Ped
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
-          <EstadoPill estado={p.estado} />
+          <EstadoPill estado={p.estado} debe={p.pago_pendiente} />
           {p.canal === 'online' && <DistanciaPill />}
         </div>
       </div>
@@ -48,7 +48,7 @@ export function PedidoCard({ pedido: p, acciones, mostrarCajero }: { pedido: Ped
         <span className="text-sm text-muted">
           Total ·{' '}
           <span className="font-medium text-ink">
-            {p.estado === 'pendiente' && p.metodo_pago ? `Pagará con ${textoMetodo(p.metodo_pago)}` : textoMetodo(p.metodo_pago)}
+            {(p.estado === 'pendiente' || p.pago_pendiente) && p.metodo_pago ? `Pagará con ${textoMetodo(p.metodo_pago)}` : textoMetodo(p.metodo_pago)}
           </span>
         </span>
         <span className="text-lg font-bold tabular-nums text-accent">{precio(p.total)}</span>

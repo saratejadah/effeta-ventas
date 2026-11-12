@@ -51,6 +51,8 @@ export interface Pedido {
   estado: Estado
   cajero_id: string | null
   metodo_pago: MetodoPago | null
+  /** Ya se entregó pero todavía debe el pago (solo con estado 'entregado') */
+  pago_pendiente?: boolean
   total: number
   created_at: string
   perfiles?: { nombre: string } | null

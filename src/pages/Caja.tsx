@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, ClipboardList, PauseCircle, X, ImageOff, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react'
+import { CheckCircle2, ClipboardList, PauseCircle, X, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { useJornadas, usePedidos, useProductos } from '../lib/hooks'
@@ -8,7 +8,8 @@ import { mensajeError, numeroPedido, precio } from '../lib/format'
 import { textoMetodo } from '../lib/pago'
 import type { Carrito, MetodoPago } from '../lib/types'
 import { PedidoCard } from '../components/PedidoCard'
-import { AccionesPago } from '../components/AccionesPago'
+import { AccionesPago, debePago } from '../components/AccionesPago'
+import { TarjetaProducto } from '../components/TarjetaProducto'
 import { sugerencias } from '../components/Vueltas'
 import {
   Aviso,
@@ -168,7 +169,7 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
         )}
       </div>
       {lineas.length === 0 ? (
-        <p className="text-sm text-muted">Toca un producto para agregarlo.</p>
+        <p className="text-sm text-muted">Usa + en un producto para agregarlo.</p>
       ) : (
         <ul className="divide-y divide-line">
           {lineas.map((l) => (
@@ -281,7 +282,7 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
           <div>
             <TituloPagina>Vender</TituloPagina>
             <p className="mt-1 text-sm text-muted">
-              {primerNombre ? `Hola, ${primerNombre}. ` : ''}Toca un producto para sumarlo a la venta.
+              {primerNombre ? `Hola, ${primerNombre}. ` : ''}Usa + y − para armar la venta.
             </p>
           </div>
 
@@ -309,45 +310,19 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
           ) : disponibles.length === 0 ? (
             <Card className="text-center text-sm text-muted">Se agotó todo. Si llegan más unidades, el admin las suma en Productos.</Card>
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {disponibles.map((p) => {
-                const enCarrito = carrito[p.id] ?? 0
-                const agotado = p.stock <= 0
-                const lleno = enCarrito >= p.stock
-                return (
-                  <button
-                    key={p.id}
-                    disabled={agotado || lleno}
-                    onClick={() => {
-                      setUltima(null)
-                      setCarrito((c) => fijarCantidad(c, p, enCarrito + 1))
-                    }}
-                    className={`relative flex min-h-[112px] flex-col rounded-2xl border bg-white p-3 text-left transition active:scale-[0.97] disabled:active:scale-100 ${
-                      enCarrito > 0 ? 'border-primary ring-1 ring-primary' : 'border-line'
-                    } ${agotado ? 'opacity-50' : ''}`}
-                  >
-                    {enCarrito > 0 && (
-                      <span className="absolute -right-2 -top-2 flex h-7 min-w-7 items-center justify-center rounded-full bg-primary px-1.5 text-sm font-bold text-white">
-                        {enCarrito}
-                      </span>
-                    )}
-                    <span className="mb-2 h-12 w-12 overflow-hidden rounded-lg bg-page">
-                      {p.imagen_url ? (
-                        <img src={p.imagen_url} alt="" className={`h-full w-full object-cover ${agotado ? 'grayscale' : ''}`} loading="lazy" />
-                      ) : (
-                        <span className="flex h-full w-full items-center justify-center text-muted/50">
-                          <ImageOff size={18} strokeWidth={1.5} />
-                        </span>
-                      )}
-                    </span>
-                    <span className="line-clamp-2 text-[15px] font-semibold leading-snug">{p.nombre}</span>
-                    <span className="mt-auto pt-2 text-lg font-bold tabular-nums">{precio(p.precio)}</span>
-                    <span className={`text-xs font-medium ${agotado ? 'text-muted' : p.stock <= 3 ? 'text-warn' : 'text-ok'}`}>
-                      {agotado ? 'Agotado' : `Quedan ${p.stock - enCarrito}`}
-                    </span>
-                  </button>
-                )
-              })}
+            <div className="grid gap-3 xl:grid-cols-2">
+              {disponibles.map((p) => (
+                <TarjetaProducto
+                  key={p.id}
+                  producto={p}
+                  cantidad={carrito[p.id] ?? 0}
+                  restarElegidos
+                  onChange={(n) => {
+                    setUltima(null)
+                    setCarrito((c) => fijarCantidad(c, p, n))
+                  }}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -408,8 +383,8 @@ function PedidosOnline({
 }: ReturnType<typeof usePedidos> & { filtro: Filtro; onFiltro: (f: Filtro) => void }) {
   const [busqueda, setBusqueda] = useState('')
 
-  // Por cobrar: todo lo pendiente (online y en caja). Por entregar: online ya pagados.
-  const porCobrar = pedidos.filter((p) => p.estado === 'pendiente')
+  // Por cobrar: todo lo que no se ha pagado (también lo entregado que debe el pago). Por entregar: online ya pagados.
+  const porCobrar = pedidos.filter(debePago)
   const porEntregar = pedidos.filter((p) => p.estado === 'pagado' && p.canal === 'online')
   const conteo = { 'por-cobrar': porCobrar.length, 'por-entregar': porEntregar.length }
 

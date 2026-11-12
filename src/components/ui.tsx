@@ -139,7 +139,8 @@ const estadoInfo: Record<Estado, { texto: string; color: keyof typeof pillColor 
   cancelado: { texto: 'Cancelado', color: 'gris' },
 }
 
-export function EstadoPill({ estado }: { estado: Estado }) {
+export function EstadoPill({ estado, debe }: { estado: Estado; debe?: boolean }) {
+  if (estado === 'entregado' && debe) return <Pill color="ambar">Entregado · debe pago</Pill>
   const e = estadoInfo[estado]
   return <Pill color={e.color}>{e.texto}</Pill>
 }
