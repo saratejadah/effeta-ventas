@@ -39,7 +39,7 @@ const tabs: Tab<Pestana>[] = [
 export default function CajaPage() {
   const { perfil, salir } = useAuth()
   const [pestana, setPestana] = useState<Pestana>('vender')
-  const [filtro, setFiltro] = useState<Filtro>('para-recoger')
+  const [filtro, setFiltro] = useState<Filtro>('por-cobrar')
   const { abierta, cargando, error } = useJornadas()
   const pedidos = usePedidos(abierta ? abierta.id : cargando ? undefined : null)
 
@@ -375,7 +375,7 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
 
 /* ================= Pedidos ================= */
 
-type Filtro = 'para-recoger' | 'por-cobrar'
+type Filtro = 'por-cobrar' | 'para-recoger'
 
 function PedidosOnline({
   pedidos,
@@ -439,8 +439,8 @@ function PedidosOnline({
       <div className="grid grid-cols-2 gap-1 rounded-xl bg-white p-1 ring-1 ring-line">
         {(
           [
-            ['para-recoger', 'Para recoger'],
             ['por-cobrar', 'Por cobrar'],
+            ['para-recoger', 'Para recoger'],
           ] as const
         ).map(([id, texto]) => (
           <button
