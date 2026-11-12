@@ -51,6 +51,8 @@ export interface Pedido {
   estado: Estado
   cajero_id: string | null
   metodo_pago: MetodoPago | null
+  /** A qué hora dijo la persona que recoge (solo pedidos del link) */
+  hora_recogida?: string | null
   /** Ya se entregó pero todavía debe el pago (solo con estado 'entregado') */
   pago_pendiente?: boolean
   total: number

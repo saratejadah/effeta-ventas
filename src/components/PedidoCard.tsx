@@ -4,9 +4,12 @@ import { hora, nombreItem, numeroPedido, precio } from '../lib/format'
 import { textoMetodo } from '../lib/pago'
 import type { Pedido } from '../lib/types'
 import { DistanciaPill, EstadoPill } from './ui'
+import { RecogidaPill } from './RecogidaPill'
+import { useAhora } from '../lib/recogida'
 
 /** Tarjeta de un pedido con su detalle. `acciones` se pinta abajo (botones). */
 export function PedidoCard({ pedido: p, acciones, mostrarCajero }: { pedido: Pedido; acciones?: ReactNode; mostrarCajero?: boolean }) {
+  const ahora = useAhora()
   return (
     <div className={`rounded-2xl border border-line bg-white p-4 ${p.canal === 'online' ? 'border-l-4 border-l-[#7A3FB0]' : ''}`}>
       <div className="flex items-start justify-between gap-3">
@@ -28,6 +31,7 @@ export function PedidoCard({ pedido: p, acciones, mostrarCajero }: { pedido: Ped
         <div className="flex shrink-0 flex-col items-end gap-1.5">
           <EstadoPill estado={p.estado} debe={p.pago_pendiente} />
           {p.canal === 'online' && <DistanciaPill />}
+          <RecogidaPill pedido={p} ahora={ahora} />
         </div>
       </div>
 

@@ -1,19 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, ClipboardList, PauseCircle, X, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react'
+import { CheckCircle2, ClipboardList, PauseCircle, X, XCircle, Search, ShoppingCart, Trash2, Wallet } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { useJornadas, usePedidos, useProductos } from '../lib/hooks'
 import { ajustarCarrito, fijarCantidad, lineasCarrito } from '../lib/carrito'
 import { mensajeError, numeroPedido, precio } from '../lib/format'
 import { textoMetodo } from '../lib/pago'
-import type { Carrito, MetodoPago } from '../lib/types'
+import type { Carrito, MetodoPago, Pedido } from '../lib/types'
 import { PedidoCard } from '../components/PedidoCard'
 import { AccionesPago, debePago } from '../components/AccionesPago'
 import { TarjetaProducto } from '../components/TarjetaProducto'
+import { estadoRecogida, useAhora } from '../lib/recogida'
 import { sugerencias } from '../components/Vueltas'
 import {
   Aviso,
   BotonPrincipal,
+  BotonSecundario,
   BottomNav,
   Card,
   Cargando,
@@ -37,7 +39,7 @@ const tabs: Tab<Pestana>[] = [
 export default function CajaPage() {
   const { perfil, salir } = useAuth()
   const [pestana, setPestana] = useState<Pestana>('vender')
-  const [filtro, setFiltro] = useState<Filtro>('por-cobrar')
+  const [filtro, setFiltro] = useState<Filtro>('para-recoger')
   const { abierta, cargando, error } = useJornadas()
   const pedidos = usePedidos(abierta ? abierta.id : cargando ? undefined : null)
 
@@ -373,7 +375,7 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
 
 /* ================= Pedidos ================= */
 
-type Filtro = 'por-cobrar' | 'por-entregar'
+type Filtro = 'para-recoger' | 'por-cobrar' | 'por-entregar'
 
 function PedidosOnline({
   pedidos,
@@ -385,15 +387,37 @@ function PedidosOnline({
 }: ReturnType<typeof usePedidos> & { filtro: Filtro; onFiltro: (f: Filtro) => void }) {
   const [busqueda, setBusqueda] = useState('')
 
+  const ahora = useAhora()
+  const [cancelando, setCancelando] = useState<string | null>(null)
+  const [errorAccion, setErrorAccion] = useState<string | null>(null)
+
+  // Para recoger: pedidos del link sin entregar, por hora de recogida.
   // Por cobrar: todo lo que no se ha pagado (también lo entregado que debe el pago). Por entregar: online ya pagados.
+  const paraRecoger = pedidos.filter((p) => p.canal === 'online' && (p.estado === 'pendiente' || p.estado === 'pagado'))
   const porCobrar = pedidos.filter(debePago)
   const porEntregar = pedidos.filter((p) => p.estado === 'pagado' && p.canal === 'online')
-  const conteo = { 'por-cobrar': porCobrar.length, 'por-entregar': porEntregar.length }
+  const conteo = { 'para-recoger': paraRecoger.length, 'por-cobrar': porCobrar.length, 'por-entregar': porEntregar.length }
 
   const q = busqueda.trim().toLowerCase().replace(/^#/, '')
-  const visibles = (filtro === 'por-cobrar' ? porCobrar : porEntregar)
+  const lista = filtro === 'para-recoger' ? paraRecoger : filtro === 'por-cobrar' ? porCobrar : porEntregar
+  const momento = (p: Pedido) => (p.hora_recogida ? new Date(p.hora_recogida).getTime() : Infinity)
+  const visibles = lista
     .filter((p) => !q || String(p.numero) === String(Number(q)) || p.nombre_cliente.toLowerCase().includes(q))
-    .sort((a, b) => a.numero - b.numero)
+    .sort((a, b) => (filtro === 'para-recoger' ? momento(a) - momento(b) || a.numero - b.numero : a.numero - b.numero))
+
+  /** Pedido del link que venció sin pagarse: la caja lo puede cancelar y las unidades vuelven al stock */
+  const vencidoSinPagar = (p: Pedido) =>
+    p.canal === 'online' && p.estado === 'pendiente' && !!p.hora_recogida && estadoRecogida(p.hora_recogida, ahora) === 'vencido'
+
+  async function noLoRecogieron(p: Pedido) {
+    if (!window.confirm(`¿Cancelar el pedido ${numeroPedido(p.numero)} de ${p.nombre_cliente}? No lo recogieron a tiempo. Las unidades vuelven al stock.`)) return
+    setCancelando(p.id)
+    setErrorAccion(null)
+    const { error } = await supabase.rpc('cancelar_pedido', { p_pedido_id: p.id })
+    setCancelando(null)
+    if (error) setErrorAccion(mensajeError(error))
+    else recargar()
+  }
 
   return (
     <Contenido className="space-y-4 pb-28 pt-5">
@@ -413,9 +437,10 @@ function PedidosOnline({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-2 rounded-xl bg-white p-1 ring-1 ring-line">
+      <div className="grid grid-cols-3 gap-1 rounded-xl bg-white p-1 ring-1 ring-line">
         {(
           [
+            ['para-recoger', 'Para recoger'],
             ['por-cobrar', 'Por cobrar'],
             ['por-entregar', 'Por entregar'],
           ] as const
@@ -423,12 +448,14 @@ function PedidosOnline({
           <button
             key={id}
             onClick={() => setFiltro(id)}
-            className={`rounded-lg py-2 text-sm font-semibold transition ${filtro === id ? 'bg-primary text-white' : 'text-muted'}`}
+            className={`rounded-lg px-1 py-2 text-[13px] font-semibold leading-tight transition ${filtro === id ? 'bg-primary text-white' : 'text-muted'}`}
           >
             {texto} ({conteo[id]})
           </button>
         ))}
       </div>
+
+      {errorAccion && <Aviso tipo="error">{errorAccion}</Aviso>}
 
       {cargando ? (
         <Cargando />
@@ -438,11 +465,37 @@ function PedidosOnline({
         <Card className="text-center">
           <p className="text-[15px] font-semibold">{q ? 'No encontramos ese pedido' : 'Todo al día'}</p>
           <p className="mt-1 text-sm text-muted">
-            {q ? 'Revisa el número o el nombre.' : filtro === 'por-cobrar' ? 'No hay pedidos por cobrar.' : 'No hay pedidos por entregar.'}
+            {q
+              ? 'Revisa el número o el nombre.'
+              : filtro === 'para-recoger'
+                ? 'No hay pedidos a distancia por recoger.'
+                : filtro === 'por-cobrar'
+                  ? 'No hay pedidos por cobrar.'
+                  : 'No hay pedidos por entregar.'}
           </p>
         </Card>
       ) : (
-        visibles.map((p) => <PedidoCard key={p.id} pedido={p} acciones={<AccionesPago pedido={p} onHecho={recargar} />} />)
+        visibles.map((p) => (
+          <PedidoCard
+            key={p.id}
+            pedido={p}
+            acciones={
+              <div className="w-full space-y-2">
+                <AccionesPago pedido={p} onHecho={recargar} />
+                {vencidoSinPagar(p) && (
+                  <BotonSecundario
+                    className="w-full text-danger"
+                    icon={XCircle}
+                    disabled={cancelando === p.id}
+                    onClick={() => noLoRecogieron(p)}
+                  >
+                    No lo recogieron · Cancelar
+                  </BotonSecundario>
+                )}
+              </div>
+            }
+          />
+        ))
       )}
     </Contenido>
   )

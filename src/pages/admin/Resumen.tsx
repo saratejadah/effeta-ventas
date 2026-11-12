@@ -84,7 +84,7 @@ export default function Resumen({ nombre, jornadas, abierta, jornada, onElegir, 
 
   function exportarPedidos() {
     const filas: (string | number | null)[][] = [
-      ['Número', 'Fecha', 'Hora', 'Cliente', 'Teléfono', 'Canal', 'Cajero', 'Estado', 'Método de pago', 'Total', 'Detalle'],
+      ['Número', 'Fecha', 'Hora', 'Cliente', 'Teléfono', 'Canal', 'Hora de recogida', 'Cajero', 'Estado', 'Método de pago', 'Total', 'Detalle'],
     ]
     for (const p of [...pedidos].sort((a, b) => a.numero - b.numero)) {
       const f = new Date(p.created_at)
@@ -94,7 +94,8 @@ export default function Resumen({ nombre, jornadas, abierta, jornada, onElegir, 
         f.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
         p.nombre_cliente,
         p.telefono,
-        p.canal,
+        p.canal === 'online' ? 'a distancia' : 'en caja',
+        p.hora_recogida ? new Date(p.hora_recogida).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) : '',
         p.perfiles?.nombre ?? '',
         p.estado === 'entregado' && p.pago_pendiente ? 'entregado (debe pago)' : p.estado,
         p.metodo_pago ? textoMetodo(p.metodo_pago) : '',
