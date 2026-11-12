@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, PauseCircle, ShoppingBag, X } from 'lucide-react'
+import { CheckCircle2, Clock, PauseCircle, ShoppingBag, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useJornadas, useProductos } from '../lib/hooks'
 import { TarjetaProducto } from '../components/TarjetaProducto'
+import { MINUTOS_GRACIA, horariosRecogida, limiteRecogida, textoHora, useAhora } from '../lib/recogida'
 import { ajustarCarrito, fijarCantidad, lineasCarrito } from '../lib/carrito'
 import { mensajeError, numeroPedido, precio } from '../lib/format'
 import { textoMetodo } from '../lib/pago'
@@ -29,6 +30,7 @@ interface Confirmacion {
   nombre: string
   total: number
   metodo: MetodoPago
+  horaRecogida: string
   lineas: { nombre: string; cantidad: number; subtotal: number }[]
 }
 
@@ -46,6 +48,11 @@ export default function PedidoPage() {
   const [error, setError] = useState<string | null>(null)
   const [confirmacion, setConfirmacion] = useState<Confirmacion | null>(null)
   const [abierto, setAbierto] = useState(false) // panel "Tu pedido" en celular
+  const [horaRecogida, setHoraRecogida] = useState('') // ISO de la hora elegida
+  const ahora = useAhora()
+  const horarios = horariosRecogida(ahora)
+  // Si la hora elegida ya pasó (la página quedó abierta), hay que elegir otra
+  const horaVigente = horarios.some((h) => h.toISOString() === horaRecogida) ? horaRecogida : ''
 
   // Si el stock baja mientras la persona elige, ajustamos su carrito
   useEffect(() => {
@@ -71,6 +78,10 @@ export default function PedidoPage() {
       setError('Cuéntanos tu nombre para poder entregarte el pedido.')
       return
     }
+    if (!horaVigente) {
+      setError('Elige a qué hora vas a recoger tu pedido.')
+      return
+    }
     if (!metodo) {
       setError('Elige cómo vas a pagar.')
       return
@@ -82,6 +93,7 @@ export default function PedidoPage() {
       p_telefono: telefono.trim() || null,
       p_items: lineas.map((l) => ({ producto_id: l.producto.id, cantidad: l.cantidad })),
       p_metodo_pago: metodo,
+      p_hora_recogida: horaVigente,
     })
     setEnviando(false)
 
@@ -105,6 +117,7 @@ export default function PedidoPage() {
       nombre: nombre.trim(),
       total: Number(fila.out_total),
       metodo,
+      horaRecogida: horaVigente,
       lineas: lineas.map((l) => ({ nombre: l.producto.nombre, cantidad: l.cantidad, subtotal: l.subtotal })),
     })
     setCarrito({})
@@ -118,6 +131,7 @@ export default function PedidoPage() {
     setNombre('')
     setTelefono('')
     setMetodo(null)
+    setHoraRecogida('')
     setPaso('elegir')
     window.scrollTo({ top: 0 })
   }
@@ -138,7 +152,16 @@ export default function PedidoPage() {
             <p className="font-serif text-[64px] font-bold leading-none text-primary">
               {numeroPedido(confirmacion.numero)}
             </p>
-            <p className="mt-4 rounded-xl bg-warn-bg px-4 py-3 text-sm font-medium text-warn">
+            <div className="mt-4 flex items-center gap-3 rounded-xl bg-[#E8EAFB] px-4 py-3 text-primary">
+              <Clock size={22} className="shrink-0" />
+              <p className="text-sm">
+                Recógelo a las <span className="text-base font-bold">{textoHora(confirmacion.horaRecogida)}</span>
+                <span className="block text-[13px]">
+                  Si no lo recoges antes de las {textoHora(limiteRecogida(confirmacion.horaRecogida))}, se pierde el pedido.
+                </span>
+              </p>
+            </div>
+            <p className="mt-3 rounded-xl bg-warn-bg px-4 py-3 text-sm font-medium text-warn">
               {confirmacion.metodo === 'transferencia'
                 ? 'Haz la transferencia y muestra este número con el comprobante al recoger.'
                 : 'Muestra este número al recoger y pagar.'}
@@ -243,6 +266,38 @@ export default function PedidoPage() {
           aria-label="Teléfono (opcional)"
           className="w-full rounded-lg border border-line bg-white px-3 py-2.5 text-[15px] outline-none placeholder:text-muted/70 focus:border-primary"
         />
+      </div>
+
+      <div className="space-y-2">
+        <SectionLabel>¿A qué hora lo recoges?</SectionLabel>
+        {horarios.length === 0 ? (
+          <p className="text-sm text-muted">Por ahora no hay horarios disponibles.</p>
+        ) : (
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {horarios.map((h) => {
+              const iso = h.toISOString()
+              const on = horaVigente === iso
+              return (
+                <button
+                  key={iso}
+                  type="button"
+                  onClick={() => {
+                    setHoraRecogida(iso)
+                    setError(null)
+                  }}
+                  className={`rounded-lg border px-2 py-2.5 text-sm font-semibold tabular-nums transition ${
+                    on ? 'border-primary bg-[#E8EAFB] text-primary ring-1 ring-primary' : 'border-line bg-white text-ink'
+                  }`}
+                >
+                  {textoHora(h, ahora)}
+                </button>
+              )
+            })}
+          </div>
+        )}
+        <p className="rounded-lg bg-warn-bg px-3 py-2 text-xs font-medium text-warn">
+          Si no recoges tu pedido en los {MINUTOS_GRACIA} minutos siguientes a la hora que elijas, se pierde el pedido.
+        </p>
       </div>
 
       <div className="space-y-2">

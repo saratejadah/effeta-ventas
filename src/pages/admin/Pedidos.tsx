@@ -6,6 +6,7 @@ import { hora, mensajeError, numeroPedido, precio } from '../../lib/format'
 import type { Canal, Estado, Pedido } from '../../lib/types'
 import { PedidoCard } from '../../components/PedidoCard'
 import { AccionesPago, debePago } from '../../components/AccionesPago'
+import { textoHora } from '../../lib/recogida'
 import { SelectorJornada, type VistaJornada } from '../../components/Jornadas'
 import { Aviso, BotonSecundario, Card, Cargando, Chip, Contenido, EstadoPill, TituloPagina } from '../../components/ui'
 
@@ -157,6 +158,7 @@ export default function Pedidos({ jornadas, jornada, onElegir }: VistaJornada) {
                           </>
                         )}{' '}
                         · {hora(p.created_at)}
+                        {p.hora_recogida && <span className="font-semibold text-primary"> · recoge {textoHora(p.hora_recogida)}</span>}
                       </span>
                     </span>
                     <span className="flex flex-col items-end gap-1">
