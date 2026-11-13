@@ -300,8 +300,8 @@ export default function PedidoPage() {
           </div>
         )}
         <p className="rounded-lg bg-[#E8EAFB] px-3 py-2 text-xs font-medium text-primary">
-          Te guardamos tu pedido hasta {MINUTOS_GRACIA} minutos después de la hora que elijas. Si llegas más tarde, haremos lo posible,
-          pero no podemos asegurarte que siga disponible.
+          Recuerda recoger tu pedido dentro de los {MINUTOS_GRACIA} minutos siguientes a la hora seleccionada. Después de este tiempo, su
+          disponibilidad podría cambiar.
         </p>
       </div>
 
