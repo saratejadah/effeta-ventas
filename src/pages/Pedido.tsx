@@ -3,7 +3,7 @@ import { CheckCircle2, Clock, PauseCircle, ShoppingBag, X } from 'lucide-react'
 import { supabasePublico } from '../lib/supabase'
 import { useJornadas, useProductos } from '../lib/hooks'
 import { TarjetaProducto } from '../components/TarjetaProducto'
-import { MINUTOS_GRACIA, horariosRecogida, limiteRecogida, textoHora, useAhora } from '../lib/recogida'
+import { MINUTOS_GRACIA, horariosRecogida, textoHora, useAhora } from '../lib/recogida'
 import { ajustarCarrito, fijarCantidad, lineasCarrito } from '../lib/carrito'
 import { mensajeError, numeroPedido, precio } from '../lib/format'
 import { textoMetodo } from '../lib/pago'
@@ -155,10 +155,10 @@ export default function PedidoPage() {
             <div className="mt-4 flex items-center gap-3 rounded-xl bg-[#E8EAFB] px-4 py-3 text-primary">
               <Clock size={22} className="shrink-0" />
               <p className="text-sm">
-                Recógelo a las <span className="text-base font-bold">{textoHora(confirmacion.horaRecogida)}</span>
-                <span className="block text-[13px]">
-                  Te lo guardamos con cariño hasta las {textoHora(limiteRecogida(confirmacion.horaRecogida))}. Después de esa hora no podemos
-                  asegurarte que siga disponible.
+                Tu pedido te espera a las <span className="text-base font-bold">{textoHora(confirmacion.horaRecogida)}</span>
+                <span className="mt-0.5 block text-[13px]">
+                  Tienes {MINUTOS_GRACIA} minutos después de la hora seleccionada para recogerlo. Pasado este tiempo, su disponibilidad podría
+                  cambiar.
                 </span>
               </p>
             </div>
