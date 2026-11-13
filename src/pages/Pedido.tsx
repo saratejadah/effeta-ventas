@@ -157,7 +157,8 @@ export default function PedidoPage() {
               <p className="text-sm">
                 Recógelo a las <span className="text-base font-bold">{textoHora(confirmacion.horaRecogida)}</span>
                 <span className="block text-[13px]">
-                  Si no lo recoges antes de las {textoHora(limiteRecogida(confirmacion.horaRecogida))}, se pierde el pedido.
+                  Te lo guardamos con cariño hasta las {textoHora(limiteRecogida(confirmacion.horaRecogida))}. Después de esa hora no podemos
+                  asegurarte que siga disponible.
                 </span>
               </p>
             </div>
@@ -295,8 +296,9 @@ export default function PedidoPage() {
             })}
           </div>
         )}
-        <p className="rounded-lg bg-warn-bg px-3 py-2 text-xs font-medium text-warn">
-          Si no recoges tu pedido en los {MINUTOS_GRACIA} minutos siguientes a la hora que elijas, se pierde el pedido.
+        <p className="rounded-lg bg-[#E8EAFB] px-3 py-2 text-xs font-medium text-primary">
+          Te guardamos tu pedido hasta {MINUTOS_GRACIA} minutos después de la hora que elijas. Si llegas más tarde, haremos lo posible,
+          pero no podemos asegurarte que siga disponible.
         </p>
       </div>
 
