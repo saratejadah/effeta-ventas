@@ -1,5 +1,5 @@
 import { useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react'
-import { Check, Copy, Globe, LogOut, Minus, Plus, type LucideIcon } from 'lucide-react'
+import { Check, Copy, Globe, LogOut, Search, X, Minus, Plus, type LucideIcon } from 'lucide-react'
 import type { Estado, MetodoPago } from '../lib/types'
 import { METODOS_PAGO, NUMERO_TRANSFERENCIA } from '../lib/pago'
 
@@ -219,6 +219,33 @@ export function Campo({
         className="w-full rounded-lg border border-line bg-white px-3.5 py-3 text-[15px] text-ink outline-none placeholder:text-muted/70 focus:border-primary"
       />
     </label>
+  )
+}
+
+/** Barra de búsqueda con lupa y botón para borrar */
+export function CampoBusqueda({ valor, onChange, placeholder }: { valor: string; onChange: (v: string) => void; placeholder: string }) {
+  return (
+    <div className="relative">
+      <Search size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
+      <input
+        value={valor}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        inputMode="search"
+        aria-label={placeholder}
+        className="w-full rounded-lg border border-line bg-white py-3 pl-10 pr-10 text-[15px] outline-none placeholder:text-muted/70 focus:border-primary"
+      />
+      {valor && (
+        <button
+          type="button"
+          onClick={() => onChange('')}
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted"
+          aria-label="Borrar búsqueda"
+        >
+          <X size={18} />
+        </button>
+      )}
+    </div>
   )
 }
 

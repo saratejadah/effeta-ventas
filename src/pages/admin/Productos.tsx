@@ -2,13 +2,14 @@ import { useState, type FormEvent } from 'react'
 import { Camera, ImageOff, Minus, PackagePlus, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useProductos } from '../../lib/hooks'
-import { mensajeError, precio } from '../../lib/format'
+import { mensajeError, precio, sinTildes } from '../../lib/format'
 import type { Producto } from '../../lib/types'
 import {
   Aviso,
   BotonPrincipal,
   BotonSecundario,
   Campo,
+  CampoBusqueda,
   Card,
   Cargando,
   Chip,
@@ -29,12 +30,16 @@ export default function Productos() {
   const { productos, cargando, error, recargar } = useProductos(true)
   const [editando, setEditando] = useState<Producto | 'nuevo' | null>(null)
   const [filtro, setFiltro] = useState<Filtro>('todos')
+  const [busqueda, setBusqueda] = useState('')
 
   // Activos arriba y los inactivos al final; cada grupo en orden alfabético
   const ordenados = [...productos].sort(
     (a, b) => Number(b.activo) - Number(a.activo) || a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }),
   )
-  const visibles = ordenados.filter((p) => filtro === 'todos' || (filtro === 'activos' ? p.activo : !p.activo))
+  const q = sinTildes(busqueda.trim())
+  const visibles = ordenados.filter(
+    (p) => (filtro === 'todos' || (filtro === 'activos' ? p.activo : !p.activo)) && (!q || sinTildes(p.nombre).includes(q)),
+  )
   const cuantos = {
     todos: productos.length,
     activos: productos.filter((p) => p.activo).length,
@@ -73,6 +78,7 @@ export default function Productos() {
         <Card className="text-center text-sm text-muted">Aún no hay productos. ¡Crea el primero!</Card>
       ) : (
         <>
+          <CampoBusqueda valor={busqueda} onChange={setBusqueda} placeholder="Buscar producto" />
           <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
             {filtros.map((f) => (
               <Chip key={f.id} activo={filtro === f.id} onClick={() => setFiltro(f.id)}>
@@ -82,7 +88,11 @@ export default function Productos() {
           </div>
           {visibles.length === 0 ? (
             <Card className="text-center text-sm text-muted">
-              {filtro === 'activos' ? 'No hay productos activos.' : 'No hay productos inactivos.'}
+              {q
+                ? `No hay productos que coincidan con “${busqueda.trim()}”.`
+                : filtro === 'activos'
+                  ? 'No hay productos activos.'
+                  : 'No hay productos inactivos.'}
             </Card>
           ) : (
             visibles.map((p) => <FilaProducto key={p.id} producto={p} onEditar={() => setEditando(p)} onEliminado={recargar} />)

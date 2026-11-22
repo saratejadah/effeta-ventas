@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { useJornadas, usePedidos, useProductos } from '../lib/hooks'
 import { ajustarCarrito, fijarCantidad, lineasCarrito } from '../lib/carrito'
-import { mensajeError, numeroPedido, precio } from '../lib/format'
+import { mensajeError, numeroPedido, precio, sinTildes } from '../lib/format'
 import { textoMetodo } from '../lib/pago'
 import type { Carrito, MetodoPago, Pedido } from '../lib/types'
 import { PedidoCard } from '../components/PedidoCard'
@@ -16,6 +16,7 @@ import {
   Aviso,
   BotonPrincipal,
   BotonSecundario,
+  CampoBusqueda,
   BottomNav,
   Card,
   Cargando,
@@ -97,11 +98,6 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
   const disponibles = productos.filter((p) => p.stock > 0)
   // Búsqueda por nombre (sin importar mayúsculas ni tildes)
   const [busqueda, setBusqueda] = useState('')
-  const sinTildes = (t: string) =>
-    t
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
   const q = sinTildes(busqueda.trim())
   const encontrados = q ? disponibles.filter((p) => sinTildes(p.nombre).includes(q)) : disponibles
   const total = lineas.reduce((s, l) => s + l.subtotal, 0)
@@ -315,27 +311,7 @@ function Vender({ nombreCajero }: { nombreCajero?: string }) {
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-6">
         <div className="space-y-4">
           {disponibles.length > 0 && (
-            <div className="relative">
-              <Search size={18} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
-              <input
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="Buscar producto"
-                inputMode="search"
-                aria-label="Buscar producto"
-                className="w-full rounded-lg border border-line bg-white py-3 pl-10 pr-10 text-[15px] outline-none placeholder:text-muted/70 focus:border-primary"
-              />
-              {busqueda && (
-                <button
-                  type="button"
-                  onClick={() => setBusqueda('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted"
-                  aria-label="Borrar búsqueda"
-                >
-                  <X size={18} />
-                </button>
-              )}
-            </div>
+            <CampoBusqueda valor={busqueda} onChange={setBusqueda} placeholder="Buscar producto" />
           )}
           {cargando ? (
             <Cargando />

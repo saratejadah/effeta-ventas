@@ -31,3 +31,11 @@ export function mensajeError(error: unknown): string {
   }
   return 'Algo salió mal. Intenta de nuevo.'
 }
+
+/** Texto en minúsculas y sin tildes, para buscar ("Café" -> "cafe") */
+export function sinTildes(t: string): string {
+  return t
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
